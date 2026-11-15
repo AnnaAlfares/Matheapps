@@ -68,7 +68,10 @@ body.kid #lockBtn{display:inline-flex}
 body.kid .settings,body.kid #zrSeg,body.kid .stepper,body.kid #clearBtn,body.kid #houseBtn{display:none}
 .legal{text-align:center;font-size:14px;color:var(--muted);padding:0 16px 20px}
 .legal a{color:var(--muted);display:inline-block;padding:12px 6px}
-body.kid .legal .home,body.kid .legal .sep1{display:none}
+body.kid .home{display:none}
+a.tool{color:inherit;text-decoration:none}
+.home svg{width:22px;height:22px;flex:none}
+@media (max-width:1300px){.home .lbl{display:none}.home{min-width:46px;padding:0;justify-content:center}}
 
 /* Einstellungen */
 .settings{position:relative}
@@ -241,6 +244,7 @@ body.kid .legal .home,body.kid .legal .sep1{display:none}
 </head>
 <body>
 <header class="top">
+  <a class="tool home" href="../" aria-label="Zur Startseite: alle Matheapps" title="Alle Apps"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/></svg><span class="lbl">Alle Apps</span></a>
   <h1>Schüttelbox und Zahlenhaus</h1>
   <button id="lockBtn" class="tool" type="button">🔒 Lehrkraft</button>
   <div class="tools">
@@ -287,7 +291,7 @@ body.kid .legal .home,body.kid .legal .sep1{display:none}
   </section>
 </main>
 
-<footer class="legal"><a class="home" href="../">← Alle Apps</a><span class="sep1"> · </span><a href="../impressum.html">Impressum</a> · <a href="../datenschutz.html">Datenschutz</a></footer>
+<footer class="legal"><a href="../impressum.html">Impressum</a> · <a href="../datenschutz.html">Datenschutz</a></footer>
 
 <div class="dlg" id="dlg" hidden>
   <div class="dlgbox" role="dialog" aria-modal="true" aria-labelledby="dlgT">
