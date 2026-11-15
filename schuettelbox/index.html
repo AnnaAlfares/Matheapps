@@ -131,6 +131,11 @@ body.kid .legal .home,body.kid .legal .sep1{display:none}
 .lid{position:absolute;inset:0;z-index:2;border:0;border-radius:14px;background:repeating-linear-gradient(135deg,var(--lid) 0 14px,var(--lid2) 14px 28px);color:#fff;font-size:3.4rem;font-weight:700;display:flex;align-items:center;justify-content:center}
 .lid.open{inset:6px 6px auto auto;padding:3px 10px;font-size:.8rem;font-weight:400;background:var(--paper);color:var(--ink);border:2px solid var(--line);border-radius:8px}
 
+/* Vor dem ersten Schütteln: Box zu, Plättchen grau – nichts vorwegnehmen */
+.box.closed::after{content:"";position:absolute;inset:12px;z-index:2;border-radius:14px;background:repeating-linear-gradient(135deg,var(--lid) 0 14px,var(--lid2) 14px 28px)}
+.box.closed .balls,.box.closed .lid{visibility:hidden}
+.plates.closed .plate{background:var(--box)}
+
 /* Zahl auf der Box */
 .boxnum{position:absolute;top:-41px;left:50%;transform:translateX(-50%);min-width:72px;padding:0 18px;background:var(--paper);color:var(--ink);border:5px solid var(--box);border-bottom:0;border-radius:16px 16px 0 0;font-size:2rem;font-weight:700;text-align:center;line-height:36px;z-index:3}
 .plates .boxnum{border-color:var(--line);border-width:3px;top:-39px}
@@ -412,6 +417,7 @@ function renderMaterial(drop){
   $('#boxN').textContent=$('#platesN').textContent=S.n;
   $('#boxN').hidden=$('#platesN').hidden=!S.boxnum;
   $('#box').classList.toggle('hasnum',!!S.boxnum); $('#plates').classList.toggle('hasnum',!!S.boxnum);
+  $('#box').classList.toggle('closed',!shaken); $('#plates').classList.toggle('closed',!shaken);
   if(pl) renderPlates(drop); else renderBox(drop);
   const selfPending=pending&&(S.mode==='self'||S.partner);
   const tag=side=>(!shaken||!S.tags||selfPending)?'':(visible(side)?(side==='left'?left:right):'?');
