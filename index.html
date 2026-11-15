@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Matheapps</title>
+<meta name="description" content="Kleine Mathe-Apps für die Grundschule: Blitzrechnen sowie Schüttelbox und Zahlenhaus – für Digiboard, Tablet und Handy.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Matheapps">
+<meta name="theme-color" content="#F7F4EE">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* Startseite: zwei große Karten zur Auswahl der App */
+@font-face{font-family:'Andika';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/andika-400.woff2) format('woff2')}
+@font-face{font-family:'Andika';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/andika-700.woff2) format('woff2')}
+:root{--bg:#F7F4EE;--card:#FFFFFF;--ink:#1F1A16;--muted:#6B625A;--line:#E3DCD0;--focus:#2F6FB3;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#1C1916;--card:#2A2521;--ink:#F3ECE3;--muted:#B5AA9E;--line:#3A342E;--focus:#77A3F2;color-scheme:dark}}
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);
+  font-family:'Andika',"Segoe UI","Trebuchet MS",system-ui,-apple-system,sans-serif;font-size:18px;line-height:1.4;-webkit-tap-highlight-color:transparent;
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
+main{flex:1;width:100%;max-width:1000px;margin:0 auto;padding:clamp(24px,6vh,64px) 0 24px;display:flex;flex-direction:column;justify-content:center}
+h1{margin:0 0 4px;text-align:center;font-size:clamp(32px,5vw,52px);line-height:1.1}
+.sub{margin:0 0 clamp(20px,4vh,40px);text-align:center;color:var(--muted);font-size:clamp(18px,2.2vw,24px)}
+.apps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:clamp(16px,3vw,28px)}
+.app{display:flex;align-items:center;gap:20px;height:100%;padding:clamp(18px,3vw,28px);background:var(--card);color:inherit;text-decoration:none;
+  border:3px solid var(--line);border-radius:24px;box-shadow:0 6px 0 var(--line);transition:transform .12s,box-shadow .12s,border-color .12s;touch-action:manipulation}
+.app:hover{border-color:var(--accent)}
+.app:active{transform:translateY(4px);box-shadow:0 2px 0 var(--line)}
+.app:focus-visible{outline:4px solid var(--focus);outline-offset:4px}
+.app img{width:clamp(76px,11vw,112px);height:auto;aspect-ratio:1;flex:none;border-radius:22%}
+.app h2{margin:0 0 4px;font-size:clamp(24px,3vw,32px);line-height:1.15;color:var(--accent)}
+.app p{margin:0;color:var(--muted);font-size:clamp(16px,1.8vw,19px)}
+.br{--accent:#D9622A}
+.sb{--accent:#3D5A8C}
+@media (prefers-color-scheme:dark){.br{--accent:#FF9A5C}.sb{--accent:#8FB0E8}}
+@media (prefers-reduced-motion:reduce){.app{transition:none}}
+footer{text-align:center;font-size:14px;color:var(--muted);padding:8px 0 16px}
+footer a{color:var(--muted);display:inline-block;padding:12px 6px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Matheapps</h1>
+  <p class="sub">Wähle eine App.</p>
+  <ul class="apps">
+    <li><a class="app br" href="blitzrechnen/">
+      <img src="blitzrechnen/icon.svg" alt="">
+      <div><h2>Blitzrechnen</h2><p>Zehnerfeld, Zwanzigerfeld und Würfel kurz sehen und sagen, wie viele es sind.</p></div>
+    </a></li>
+    <li><a class="app sb" href="schuettelbox/">
+      <img src="schuettelbox/icon.svg" alt="">
+      <div><h2>Schüttelbox und Zahlenhaus</h2><p>Zahlen zerlegen mit Schüttelbox, Wendeplättchen oder Würfeln.</p></div>
+    </a></li>
+  </ul>
+</main>
+<footer><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></footer>
+</body>
+</html>

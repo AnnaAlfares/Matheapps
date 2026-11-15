@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Schüttelbox und Zahlenhaus</title>
+<meta name="description" content="Zahlzerlegung für die Grundschule mit Schüttelbox, Wendeplättchen oder Würfeln und dem Zahlenhaus – am Digiboard, Tablet oder Handy.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Schüttelbox">
+<meta name="theme-color" content="#EDF2F8">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* Schrift Andika (SIL Open Font License, siehe fonts/OFL.txt) – lokal, ohne Google-Server */
+@font-face{font-family:'Andika';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/andika-400.woff2) format('woff2')}
+@font-face{font-family:'Andika';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/andika-700.woff2) format('woff2')}
+:root{
+  color-scheme: light;
+  --bg:#EDF2F8; --paper:#FFFFFF; --ink:#1E2B45; --muted:#5B6782;
+  --blue:#2F6FDB; --blue-t:#E2EBFB; --red:#D6453B; --red-t:#FBE3E0;
+  --ball:#F2B33D; --ball-hi:#FFE6A3; --ball-edge:#B97E10;
+  --box:#8597B6; --boxfill:rgba(255,255,255,.65); --lid:#6F82A3; --lid2:#7D90B0;
+  --roof:#3D5A8C; --line:#C8D2E2; --ok:#24875A; --sel:#FFF1C9; --onink:#FFFFFF;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#131A29; --paper:#1D2637; --ink:#EAF0FA; --muted:#A5B1C8;
+    --blue:#77A3F2; --blue-t:#203250; --red:#F0837A; --red-t:#43272A;
+    --ball:#F2B33D; --ball-hi:#FFE2A0; --ball-edge:#9C6A0C;
+    --box:#6C7C99; --boxfill:rgba(255,255,255,.04); --lid:#4D5D7A; --lid2:#566785;
+    --roof:#5A79B0; --line:#33405A; --ok:#3FAE74; --sel:#463A18; --onink:#131A29;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#131A29; --paper:#1D2637; --ink:#EAF0FA; --muted:#A5B1C8;
+  --blue:#77A3F2; --blue-t:#203250; --red:#F0837A; --red-t:#43272A;
+  --ball:#F2B33D; --ball-hi:#FFE2A0; --ball-edge:#9C6A0C;
+  --box:#6C7C99; --boxfill:rgba(255,255,255,.04); --lid:#4D5D7A; --lid2:#566785;
+  --roof:#5A79B0; --line:#33405A; --ok:#3FAE74; --sel:#463A18; --onink:#131A29;
+}
+[hidden]{display:none!important}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Andika',"Comic Neue","Trebuchet MS",system-ui,-apple-system,sans-serif;font-size:18px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+:focus-visible{outline:3px solid var(--ball);outline-offset:2px}
+
+/* Kopfzeile */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;padding:12px max(16px,env(safe-area-inset-left,0px)) 8px max(16px,env(safe-area-inset-right,0px));max-width:1200px;margin:0 auto}
+h1{font-size:1.2rem;margin:0;font-weight:700}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:9px;min-height:42px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--onink)}
+.stepper{display:inline-flex;align-items:center;background:var(--paper);border:2px solid var(--line);border-radius:12px}
+.stepper button{width:46px;height:46px;border:0;background:transparent;font-size:1.6rem;line-height:1}
+#nIn{width:3.4ch;font:inherit;font-size:1.6rem;font-weight:700;text-align:center;border:0;background:transparent;color:var(--ink);-moz-appearance:textfield;appearance:textfield}
+#nIn::-webkit-inner-spin-button,#nIn::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.tool{min-height:46px;padding:0 14px;border-radius:12px;border:2px solid var(--line);background:var(--paper);display:inline-flex;align-items:center;gap:6px}
+#lockBtn{display:none}
+body.kid #lockBtn{display:inline-flex}
+body.kid .settings,body.kid #zrSeg,body.kid .stepper,body.kid #clearBtn,body.kid #houseBtn{display:none}
+.legal{text-align:center;font-size:14px;color:var(--muted);padding:0 16px 20px}
+.legal a{color:var(--muted);display:inline-block;padding:12px 6px}
+body.kid .legal .home,body.kid .legal .sep1{display:none}
+
+/* Einstellungen */
+.settings{position:relative}
+.settings summary{list-style:none}
+.settings summary::-webkit-details-marker{display:none}
+.panel{position:absolute;right:0;top:calc(100% + 8px);width:min(380px,calc(100vw - 24px));max-height:78vh;overflow-y:auto;background:var(--paper);border:2px solid var(--line);border-radius:16px;padding:6px 16px 16px;z-index:60;box-shadow:0 12px 30px rgba(0,0,0,.18)}
+.panel h2{font-size:1rem;margin:16px 0 6px}
+.panel label{display:flex;gap:10px;align-items:center;min-height:40px}
+.panel input[type=checkbox]{width:22px;height:22px;accent-color:var(--blue);flex:none}
+.panel input[type=text]{font:inherit;width:100%;padding:6px 10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.hint{font-size:.85rem;color:var(--muted);margin:6px 0 0}
+.panel .done{margin-top:18px;width:100%;justify-content:center;font-weight:700}
+.vrow{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--line)}
+.vrow span{font-size:.9rem;flex:1}
+.vrow button{min-width:42px;min-height:38px;border-radius:9px;border:2px solid var(--line);background:var(--bg);font-size:.9rem}
+.vrow button.rec{border-color:var(--red);color:var(--red);font-weight:700}
+.vrow .mark{color:var(--ok);font-weight:700}
+@media (max-width:780px){
+  .panel{position:fixed;left:12px;right:12px;top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:auto;max-height:70vh;max-height:70dvh}
+}
+
+/* Bühne */
+.stage{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr);gap:28px;padding:8px 20px 32px;max-width:1200px;margin:0 auto;align-items:start}
+@media (max-width:780px){.stage{grid-template-columns:1fr;gap:22px;padding:6px 12px 24px}}
+.boxside{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0}
+
+/* Partner */
+.partnerbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+.who{padding:6px 14px;border-radius:20px;border:2px solid var(--line);background:var(--paper)}
+.who.on{background:var(--ink);color:var(--onink);border-color:var(--ink)}
+.who.on::after{content:" ist dran"}
+
+/* Würfel */
+.dicetray{display:flex;gap:12px;align-items:center;min-height:62px}
+.die{width:58px;height:58px;background:var(--paper);border:3px solid var(--ink);border-radius:12px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:7px;gap:2px}
+.die i{border-radius:50%}
+.die i.on{background:var(--ink)}
+.die.digit{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0}
+.die.digit b{font-size:1.8rem;line-height:1}
+.die.digit small{font-size:.65rem;color:var(--muted)}
+.die.rolling{animation:roll .14s linear infinite}
+@keyframes roll{50%{transform:rotate(12deg) translateY(-4px)}}
+.dsum{font-size:1.5rem;font-weight:700}
+
+/* Schüttelbox */
+.box{position:relative;display:grid;grid-template-columns:1fr 14px 1fr;width:100%;max-width:640px;padding:12px;border-radius:24px;background:var(--boxfill);border:5px solid var(--box);box-shadow:0 6px 0 var(--line)}
+.divider{background:var(--box);border-radius:7px;margin:0 3px}
+.chamber{position:relative;display:flex;align-items:flex-end;justify-content:center;padding:10px;border-radius:14px;min-height:110px;overflow:hidden}
+.chamber.l{background:var(--blue-t);box-shadow:inset 0 -6px 0 var(--blue)}
+.chamber.r{background:var(--red-t);box-shadow:inset 0 -6px 0 var(--red)}
+.balls{display:flex;flex-wrap:wrap-reverse;align-content:flex-start;margin-bottom:4px}
+.ball{flex:none;border-radius:50%;background:radial-gradient(circle at 34% 30%,var(--ball-hi),var(--ball) 52%,var(--ball-edge));box-shadow:0 1px 1px rgba(0,0,0,.25)}
+.ball.drop{animation:drop .45s cubic-bezier(.3,1.45,.5,1) both}
+@keyframes drop{from{transform:translateY(-48px);opacity:0}to{transform:none;opacity:1}}
+.shaking{animation:shake .65s ease-in-out}
+@keyframes shake{0%,100%{transform:none}15%{transform:translateX(-14px) rotate(-4deg)}30%{transform:translateX(12px) rotate(3deg)}45%{transform:translateX(-10px) rotate(-3deg)}60%{transform:translateX(8px) rotate(2deg)}78%{transform:translateX(-4px) rotate(-1deg)}}
+.shaking .ball,.shaking .plate{animation:jit .15s linear infinite alternate}
+@keyframes jit{to{transform:translate(3px,-9px)}}
+.lid{position:absolute;inset:0;z-index:2;border:0;border-radius:14px;background:repeating-linear-gradient(135deg,var(--lid) 0 14px,var(--lid2) 14px 28px);color:#fff;font-size:3.4rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.lid.open{inset:6px 6px auto auto;padding:3px 10px;font-size:.8rem;font-weight:400;background:var(--paper);color:var(--ink);border:2px solid var(--line);border-radius:8px}
+
+/* Zahl auf der Box */
+.boxnum{position:absolute;top:-41px;left:50%;transform:translateX(-50%);min-width:72px;padding:0 18px;background:var(--paper);color:var(--ink);border:5px solid var(--box);border-bottom:0;border-radius:16px 16px 0 0;font-size:2rem;font-weight:700;text-align:center;line-height:36px;z-index:3}
+.plates .boxnum{border-color:var(--line);border-width:3px;top:-39px}
+.box.hasnum,.plates.hasnum{margin-top:40px}
+
+/* Würfel in der Box */
+.cdie{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);background:var(--paper);border:4px solid var(--blue);border-radius:18%;padding:11%;gap:5%;margin-bottom:8px;box-shadow:0 4px 0 rgba(0,0,0,.12)}
+.chamber.r .cdie{border-color:var(--red)}
+.cdie i{border-radius:50%}
+.cdie i.on{background:var(--ink)}
+.cdie.drop{animation:dieroll .55s cubic-bezier(.3,1.3,.5,1) both}
+@keyframes dieroll{from{transform:translateY(-40px) rotate(-90deg);opacity:0}to{transform:none;opacity:1}}
+.shaking .cdie{animation:jit .15s linear infinite alternate}
+
+/* Wendeplättchen */
+.plates{position:relative;width:100%;max-width:640px;padding:18px;background:var(--paper);border:3px solid var(--line);border-radius:20px;display:flex;justify-content:center;box-shadow:0 6px 0 var(--line)}
+.pgrid{display:flex;flex-wrap:wrap;align-content:flex-start}
+.plate{flex:none;border-radius:50%;box-shadow:inset 0 -3px 0 rgba(0,0,0,.18)}
+.plate.b{background:var(--blue)}
+.plate.r{background:var(--red)}
+.plate.flip{animation:flip .5s both}
+@keyframes flip{0%{transform:rotateY(0)}50%{transform:rotateY(90deg)}100%{transform:none}}
+
+.tags{display:grid;grid-template-columns:1fr 14px 1fr;width:100%;max-width:640px;padding:0 17px;text-align:center;min-height:2.6rem}
+.tag{font-size:2rem;font-weight:700;line-height:1.3}
+.tag.l{color:var(--blue)}
+.tag.r{color:var(--red);grid-column:3}
+.shake{min-height:66px;padding:0 44px;font-size:1.45rem;font-weight:700;border-radius:34px;border:0;background:var(--ink);color:var(--onink);box-shadow:0 5px 0 var(--box)}
+.shake:active{transform:translateY(3px);box-shadow:0 2px 0 var(--box)}
+.eqrow{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;min-height:3rem}
+.peek{min-height:44px;padding:0 16px;border-radius:12px;border:2px solid var(--line);background:var(--paper)}
+.eq{font-size:2.1rem;font-weight:700;margin:0;display:flex;gap:.35em;align-items:center}
+.eq .l{color:var(--blue)}
+.eq .r{color:var(--red)}
+.eq i{font-style:normal;display:inline-block;min-width:1.5em;border:2px dashed var(--muted);border-radius:8px;text-align:center;line-height:1.2;color:var(--muted)}
+.msg{display:flex;gap:10px;align-items:center;max-width:640px;width:100%;background:var(--paper);border-radius:14px;padding:8px 12px;border:2px solid var(--line);min-height:62px}
+.msg p{margin:0;font-size:1.1rem}
+#sayBtn{width:44px;height:44px;border-radius:50%;border:2px solid var(--line);background:var(--bg);flex:none;font-size:1.1rem}
+
+/* Zahlenhaus */
+.houseside{min-width:0}
+.house{width:100%;max-width:330px;margin:0 auto}
+.roof{height:104px;margin:0 -16px;background:var(--roof);clip-path:polygon(50% 0,100% 100%,0 100%);display:flex;align-items:flex-end;justify-content:center;padding-bottom:12px;color:#fff;font-size:2.4rem;font-weight:700;line-height:1}
+.hbody{background:var(--paper);border:4px solid var(--roof);border-top:0;max-height:min(56vh,520px);overflow-y:auto;overscroll-behavior:contain}
+.hrow{display:grid;grid-template-columns:1fr 1fr;width:100%;border:0;background:transparent;padding:0;border-bottom:2px solid var(--line);text-align:center}
+.hrow:last-child{border-bottom:0}
+.hc{display:flex;align-items:center;justify-content:center;min-height:46px;font-size:1.6rem;font-weight:700;border:0;background:transparent;padding:0}
+.hc.l{color:var(--blue);border-right:3px solid var(--roof)}
+.hc.r{color:var(--red)}
+.hrow.blank .hc{min-height:40px}
+.hrow.sel{background:var(--sel)}
+.hrow.swap{background:repeating-linear-gradient(135deg,transparent 0 8px,var(--sel) 8px 12px)}
+.hrow.pop{animation:pop .5s}
+@keyframes pop{40%{transform:scale(1.06)}}
+.step{display:grid;grid-template-columns:1fr 1fr;height:0;position:relative;z-index:1}
+.step span{justify-self:center;transform:translateY(-50%);font-size:.8rem;font-weight:700;padding:0 7px;border-radius:9px;background:var(--paper);border:1.5px solid currentColor;line-height:1.35}
+.step .l{color:var(--blue)}
+.step .r{color:var(--red)}
+.empty{padding:22px 14px;text-align:center;color:var(--muted);margin:0}
+.pending{background:var(--paper);border:4px solid var(--roof);border-top:3px dashed var(--roof);padding-top:6px}
+.house.collapsed .roof,.house.collapsed .hbody{display:none}
+.house.collapsed .pending{border-top:4px solid var(--roof)}
+.houseoff{max-width:330px;margin:0 auto 12px;padding:22px 16px;border:3px dashed var(--line);border-radius:16px;text-align:center;color:var(--muted)}
+.houseoff p{margin:0 0 12px}
+.plabel{margin:0 10px 4px;font-size:.95rem;color:var(--muted);text-align:center}
+.prow{border-bottom:0}
+.prow .hc{min-height:54px}
+.prow .hc.in{background:var(--bg);box-shadow:inset 0 0 0 2px var(--muted);margin:4px;border-radius:8px}
+.prow .hc.l.in{border-right:0}
+.prow .hc.act{box-shadow:inset 0 0 0 4px var(--ball)}
+.prow.nope{animation:nope .4s}
+@keyframes nope{25%{transform:translateX(-8px)}50%{transform:translateX(7px)}75%{transform:translateX(-4px)}}
+.hfoot,.nbrow{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;max-width:330px;margin:10px auto 0;color:var(--muted);font-size:.95rem}
+.nbrow,.hfoot{justify-content:center}
+#count{flex-basis:100%;text-align:center}
+.hfoot button,.nbrow button{min-height:40px;padding:0 12px;border-radius:10px;border:2px solid var(--line);background:var(--paper)}
+.house.full .roof{animation:pop .7s 2}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:280px;margin:14px auto 0}
+.keypad button{min-height:56px;font-size:1.5rem;border-radius:12px;border:2px solid var(--line);background:var(--paper)}
+.keypad .ok{background:var(--ok);color:#fff;border-color:var(--ok);font-size:1.15rem}
+
+/* Dialog */
+.dlg{position:fixed;inset:0;background:rgba(10,15,25,.55);display:flex;align-items:center;justify-content:center;z-index:90;padding:16px}
+.dlgbox{background:var(--paper);border-radius:18px;padding:20px;width:min(340px,100%);display:flex;flex-direction:column;gap:10px}
+.dlgbox h2{margin:0;font-size:1.15rem}
+.dlgbox p{margin:0}
+#dlgIn{font:inherit;font-size:1.6rem;text-align:center;letter-spacing:.3em;padding:8px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
+.dlgerr{color:var(--red);min-height:1.4em;font-size:.95rem}
+.dlgbtns{display:flex;gap:10px;justify-content:flex-end}
+.dlgbtns .ok{background:var(--ink);color:var(--onink);border-color:var(--ink);font-weight:700}
+.linkbtn{border:0;background:transparent;color:var(--muted);text-decoration:underline;align-self:flex-start;padding:4px 0}
+
+/* Verbindungslinien */
+#links{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:30;opacity:0;transition:opacity .4s}
+#links.show{opacity:1}
+.glow{animation:glow 1.8s}
+@keyframes glow{30%{filter:brightness(1.12) drop-shadow(0 0 10px var(--ball))}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Schüttelbox und Zahlenhaus</h1>
+  <button id="lockBtn" class="tool" type="button">🔒 Lehrkraft</button>
+  <div class="tools">
+    <div class="seg" id="zrSeg" role="group" aria-label="Zahlenraum"></div>
+    <div class="stepper" role="group" aria-label="Zahl">
+      <button id="minus" type="button" aria-label="Eins weniger">−</button>
+      <input id="nIn" type="number" inputmode="numeric" min="1" max="100" aria-label="Zahl im Dach">
+      <button id="plus" type="button" aria-label="Eins mehr">+</button>
+    </div>
+    <button id="diceBtn" class="tool" type="button">🎲 Würfeln</button>
+    <details class="settings" id="settings">
+      <summary class="tool">⚙︎ Einstellungen</summary>
+      <div class="panel" id="panel"></div>
+    </details>
+  </div>
+</header>
+
+<main class="stage">
+  <section class="boxside" aria-label="Schüttelbox">
+    <div id="partnerBar" class="partnerbar" hidden></div>
+    <div id="diceTray" class="dicetray" hidden></div>
+    <div id="box" class="box"><div class="boxnum" id="boxN"></div>
+      <div class="chamber l" id="chL"><div class="balls"></div><button class="lid" id="lidL" type="button" hidden></button></div>
+      <div class="divider"></div>
+      <div class="chamber r" id="chR"><div class="balls"></div><button class="lid" id="lidR" type="button" hidden></button></div>
+    </div>
+    <div id="plates" class="plates" hidden><div class="boxnum" id="platesN"></div><div class="pgrid"></div></div>
+    <div class="tags" aria-live="polite"><span id="tagL" class="tag l"></span><span id="tagR" class="tag r"></span></div>
+    <button id="shakeBtn" class="shake" type="button">Schütteln</button>
+    <div class="eqrow"><p id="eq" class="eq" aria-live="polite"></p><button id="eqBtn" class="peek" type="button" hidden>Plusaufgabe zeigen</button></div>
+    <div class="msg"><button id="sayBtn" type="button" aria-label="Vorlesen">🔊</button><p id="msg" aria-live="polite"></p></div>
+  </section>
+
+  <section class="houseside" aria-label="Zahlenhaus">
+    <div class="houseoff" id="houseOff" hidden><p>Das Zahlenhaus ist ausgeblendet.</p><button id="houseOn" class="peek" type="button">Haus einblenden</button></div>
+    <div class="house" id="house">
+      <div class="roof"><span id="roofN"></span></div>
+      <div class="hbody" id="hbody"></div>
+      <div class="pending" id="pending" hidden></div>
+    </div>
+    <div id="keypad" class="keypad" hidden></div>
+    <div class="hfoot"><span id="count"></span><button id="houseBtn" type="button">Haus ausblenden</button><button id="clearBtn" type="button">Haus leeren</button></div>
+    <div class="nbrow" id="nbrow"><button id="sortBtn" type="button">Haus ordnen</button><button id="patBtn" type="button">Muster zeigen</button><button id="plusOne" type="button">+1 Kugel</button><button id="minusOne" type="button">−1 Kugel</button></div>
+  </section>
+</main>
+
+<footer class="legal"><a class="home" href="../">← Alle Apps</a><span class="sep1"> · </span><a href="../impressum.html">Impressum</a> · <a href="../datenschutz.html">Datenschutz</a></footer>
+
+<div class="dlg" id="dlg" hidden>
+  <div class="dlgbox" role="dialog" aria-modal="true" aria-labelledby="dlgT">
+    <h2 id="dlgT"></h2>
+    <p id="dlgP" class="hint"></p>
+    <input id="dlgIn" type="password" inputmode="numeric" autocomplete="off" maxlength="6">
+    <p id="dlgE" class="dlgerr"></p>
+    <div class="dlgbtns"><button id="dlgX" class="peek" type="button">Abbrechen</button><button id="dlgOk" class="peek ok" type="button">OK</button></div>
+    <button id="dlgForgot" class="linkbtn" type="button">Code vergessen?</button>
+  </div>
+</div>
+<svg id="links" aria-hidden="true"></svg>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const KEY='schuettelbox-v2', VKEY='schuettelbox-voice';
+const DEF={zr:10,n:7,hide:'none',mode:'auto',rand:'real',eq:'button',tags:false,house:true,links:true,sorted:false,empty:true,pattern:false,sound:true,speak:false,boxnum:true,material:'box',diceTarget:'roof',partner:false,names:['Kind 1','Kind 2'],kid:false,code:''};
+let S={...DEF};
+try{const v=JSON.parse(localStorage.getItem(KEY)||'null'); if(v) S={...DEF,...v};}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+if(!S.mig3){ S.sorted=false; S.pattern=false; S.mig3=true; save(); }
+let voices={}; try{voices=JSON.parse(localStorage.getItem(VKEY)||'{}')||{};}catch(e){}
+
+let left=0,right=0,plates=[],shaken=false,hid={left:false,right:false},open={left:false,right:false},eqShown=false,busy=false;
+let rows=[],pending=null,selectedA=null,lastMsg='',lastClip=null,msgSeq=0,dice=null,motionOn=false,gotMotion=false;
+let turn=0,phase='shake',impulseShown=false;
+const PIPS={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+const rnd=k=>Math.floor(Math.random()*k);
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const usePlates=()=>S.material==='plates'&&!S.partner;
+const useDice=()=>S.material==='dice';
+const possible=a=>!useDice()||(a>=1&&a<=6&&S.n-a>=1&&S.n-a<=6);
+const possibleList=()=>Array.from({length:S.n+1},(_,a)=>a).filter(possible);
+const NONE=()=>({left:false,right:false});
+const pickHide=()=>{
+  if(usePlates()||S.partner) return NONE();
+  const h=S.hide; if(h==='random'){ const l=Math.random()<.5; return {left:l,right:!l}; }
+  return {left:h==='left'||h==='both',right:h==='right'||h==='both'};
+};
+const visible=side=>!hid[side]||open[side];
+const revealAll=()=>{ open={left:true,right:true}; };
+const nameA=()=>S.names[turn]||'Kind 1', nameB=()=>S.names[1-turn]||'Kind 2';
+
+function split(){
+  if(useDice()){ const l=possibleList(); return l.length?l[rnd(l.length)]:0; }
+  if(S.rand==='uniform') return rnd(S.n+1);
+  let a=0; for(let i=0;i<S.n;i++) if(Math.random()<.5) a++; return a;
+}
+function makePlates(a){
+  const arr=Array.from({length:S.n},(_,i)=>i<a);
+  for(let i=arr.length-1;i>0;i--){ const j=rnd(i+1); [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  return arr;
+}
+function setSplit(a){ left=a; right=S.n-a; plates=makePlates(a); }
+
+/* ---------- Kopf ---------- */
+function renderZR(){
+  const seg=$('#zrSeg'); seg.innerHTML='';
+  [10,20,100].forEach(z=>{
+    const b=document.createElement('button'); b.type='button'; b.textContent='bis '+z;
+    b.setAttribute('aria-pressed',S.zr===z); b.onclick=()=>{S.zr=z; $('#diceTray').hidden=true; setN(Math.min(S.n,z));};
+    seg.appendChild(b);
+  });
+  const inp=$('#nIn'); inp.max=S.zr; if(document.activeElement!==inp) inp.value=S.n;
+  document.body.classList.toggle('kid',!!S.kid);
+}
+
+/* ---------- Material ---------- */
+function grid(w){
+  const n=S.n, cols=n<=20?5:10;
+  const max=n<=10?44:n<=20?34:22, gap=n<=20?6:3, extra=n<=20?9:6;
+  let size=Math.floor((w-(cols-1)*gap-(cols===10?extra:0))/cols);
+  size=Math.max(7,Math.min(max,size));
+  const rowsN=Math.ceil(n/cols), tens=cols===5?(n>10?1:0):(n>50?1:0);
+  return {cols,size,gap,extra,h:rowsN*size+(rowsN-1)*gap+tens*extra,w:cols*size+(cols-1)*gap+(cols===10?extra:0)};
+}
+function structure(el,i,L,vert){
+  if(L.cols===5&&i>=10&&i<15) el.style[vert]=L.extra+'px';
+  if(L.cols===10){ if(i%10===4) el.style.marginRight=L.extra+'px'; if(i>=50&&i<60) el.style[vert]=L.extra+'px'; }
+}
+function fill(el,count,L,drop){
+  el.innerHTML=''; el.style.width=L.w+'px'; el.style.gap=L.gap+'px';
+  for(let i=0;i<count;i++){
+    const b=document.createElement('span'); b.className='ball';
+    b.style.width=b.style.height=L.size+'px'; structure(b,i,L,'marginBottom');
+    if(drop){ b.classList.add('drop'); b.style.animationDelay=rnd(200)+'ms'; }
+    el.appendChild(b);
+  }
+}
+function dieIn(el,c,ch,drop){
+  el.innerHTML=''; el.style.width=''; el.style.gap='';
+  const size=Math.max(56,Math.min(130,Math.floor((ch.clientWidth-20)*.7)));
+  const d=document.createElement('div'); d.className='cdie'+(drop?' drop':'');
+  d.style.width=d.style.height=size+'px';
+  d.innerHTML=Array.from({length:9},(_,k)=>`<i class="${(PIPS[c]||[]).includes(k)?'on':''}"></i>`).join('');
+  d.setAttribute('role','img'); d.setAttribute('aria-label',c+' Augen'); el.appendChild(d);
+  return size;
+}
+function renderBox(drop){
+  const dm=useDice(), L=dm?null:grid($('#chL').clientWidth-20);
+  [['#chL',left,'left','#lidL','links'],['#chR',right,'right','#lidR','rechts']].forEach(([id,c,side,lidId,word])=>{
+    const ch=$(id);
+    if(dm){ const s=dieIn(ch.querySelector('.balls'),c,ch,drop); ch.style.minHeight=(s+36)+'px'; }
+    else { ch.style.minHeight=(L.h+28)+'px'; fill(ch.querySelector('.balls'),c,L,drop); }
+    const lid=$(lidId); lid.hidden=!hid[side];
+    lid.classList.toggle('open',open[side]);
+    lid.textContent=open[side]?'Zudecken':'?';
+    lid.setAttribute('aria-label',open[side]?'Kammer '+word+' zudecken':'Kammer '+word+' aufdecken');
+  });
+}
+function renderPlates(drop){
+  const cont=$('#plates'), g=cont.querySelector('.pgrid');
+  const L=grid(Math.min(cont.clientWidth-36,S.n<=20?320:560));
+  L.size=Math.min(L.size*1.25|0,S.n<=10?52:S.n<=20?40:26); L.gap=Math.max(L.gap,S.n<=20?8:4);
+  const w=L.cols*L.size+(L.cols-1)*L.gap+(L.cols===10?L.extra:0);
+  g.innerHTML=''; g.style.width=w+'px'; g.style.gap=L.gap+'px';
+  plates.forEach((blue,i)=>{
+    const p=document.createElement('span'); p.className='plate '+(blue?'b':'r');
+    p.style.width=p.style.height=L.size+'px'; structure(p,i,L,'marginTop');
+    if(drop){ p.classList.add('flip'); p.style.animationDelay=rnd(220)+'ms'; }
+    g.appendChild(p);
+  });
+}
+function renderMaterial(drop){
+  const pl=usePlates(); $('#box').hidden=pl; $('#plates').hidden=!pl;
+  $('#boxN').textContent=$('#platesN').textContent=S.n;
+  $('#boxN').hidden=$('#platesN').hidden=!S.boxnum;
+  $('#box').classList.toggle('hasnum',!!S.boxnum); $('#plates').classList.toggle('hasnum',!!S.boxnum);
+  if(pl) renderPlates(drop); else renderBox(drop);
+  const selfPending=pending&&(S.mode==='self'||S.partner);
+  const tag=side=>(!shaken||!S.tags||selfPending)?'':(visible(side)?(side==='left'?left:right):'?');
+  $('#tagL').textContent=tag('left'); $('#tagR').textContent=tag('right');
+}
+function renderEq(){
+  const e=$('#eq'), btn=$('#eqBtn');
+  const can=S.eq!=='off'&&shaken;
+  btn.hidden=!(can&&S.eq==='button');
+  btn.textContent=eqShown?'Plusaufgabe ausblenden':'Plusaufgabe zeigen';
+  if(!(can&&(S.eq==='always'||eqShown))){e.innerHTML='';return;}
+  if(pending&&S.mode==='self'&&!S.partner){e.innerHTML=`<span>${S.n}</span>=<i>?</i>+<i>?</i>`;return;}
+  const a=visible('left')?`<span class="l">${left}</span>`:'<i>?</i>';
+  const b=visible('right')?`<span class="r">${right}</span>`:'<i>?</i>';
+  e.innerHTML=`<span>${S.n}</span>=${a}+${b}`;
+}
+function renderPartner(){
+  const pb=$('#partnerBar'); pb.hidden=!S.partner; if(!S.partner){pb.innerHTML='';return;}
+  const actor=phase==='answer'?1-turn:turn;
+  pb.innerHTML=S.names.map((n,i)=>`<span class="who${i===actor?' on':''}">${esc(n)}</span>`).join('')+
+    (phase==='cover'?'<button class="peek" type="button" data-c="left">Links zudecken</button><button class="peek" type="button" data-c="right">Rechts zudecken</button>':'');
+  pb.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>cover(b.dataset.c));
+}
+
+/* ---------- Haus ---------- */
+function renderHouse(){
+  $('#house').classList.toggle('collapsed',!S.house);
+  $('#houseOff').hidden=!!S.house; $('#nbrow').hidden=!S.house;
+  $('#houseBtn').textContent=S.house?'Haus ausblenden':'Haus einblenden';
+  $('#patBtn').textContent=S.pattern?'Muster ausblenden':'Muster zeigen';
+  $('#sortBtn').textContent=S.sorted?'Wie gefunden':'Haus ordnen';
+  $('#plusOne').textContent=useDice()?'+1 Auge':'+1 Kugel'; $('#minusOne').textContent=useDice()?'−1 Auge':'−1 Kugel';
+  $('#roofN').textContent=S.n;
+  const hb=$('#hbody'); hb.innerHTML='';
+  let list=[...rows]; if(S.sorted) list.sort((x,y)=>x.a-y.a);
+  const tpl=S.sorted&&S.empty&&S.n<=20;
+  const items=tpl?possibleList().map(a=>rows.find(r=>r.a===a)||{a,b:S.n-a,blank:true}):list;
+  if(!items.length) hb.innerHTML='<p class="empty">Noch leer. Schüttle die Box!</p>';
+  let prev=null;
+  items.forEach(r=>{
+    if(S.pattern&&S.sorted&&prev&&!prev.blank&&!r.blank&&r.a===prev.a+1){
+      const st=document.createElement('div'); st.className='step'; st.setAttribute('aria-hidden','true');
+      st.innerHTML='<span class="l">+1</span><span class="r">−1</span>'; hb.appendChild(st);
+    }
+    const el=document.createElement(r.blank?'div':'button');
+    let cls='hrow'; if(r.blank) cls+=' blank';
+    if(!r.blank&&selectedA!==null){ if(r.a===selectedA) cls+=' sel'; else if(r.a===S.n-selectedA) cls+=' swap'; }
+    el.className=cls; el.dataset.a=r.a;
+    el.innerHTML=r.blank?'<span class="hc l"></span><span class="hc r"></span>':`<span class="hc l">${r.a}</span><span class="hc r">${r.b}</span>`;
+    if(!r.blank){ el.type='button'; el.setAttribute('aria-label',`${r.a} und ${r.b}, zeigen`); el.onclick=()=>selectRow(r); }
+    hb.appendChild(el); prev=r;
+  });
+  const p=$('#pending');
+  if(pending){
+    p.hidden=false;
+    const cell=k=>{
+      const need=pending.need[k], cls=`hc ${k==='a'?'l':'r'}${need?' in':''}${need&&pending.active===k?' act':''}`;
+      return `<button type="button" class="${cls}" data-k="${k}" ${need?'':'tabindex="-1"'} aria-label="${k==='a'?'links':'rechts'}">${need?pending.val[k]:pending[k]}</button>`;
+    };
+    const lbl=pending.need.a&&pending.need.b?'Wie viele liegen links, wie viele rechts?':'Wie viele fehlen?';
+    p.innerHTML=`<p class="plabel">${lbl}</p><div class="hrow prow">${cell('a')}${cell('b')}</div>`;
+    p.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{ if(pending.need[b.dataset.k]){pending.active=b.dataset.k; renderHouse();} });
+  } else { p.hidden=true; p.innerHTML=''; }
+  $('#keypad').hidden=!pending;
+  $('#count').textContent=S.sorted?`${rows.length} von ${possibleList().length} Zerlegungen`:`${rows.length} ${rows.length===1?'Zerlegung':'Zerlegungen'} gefunden`;
+}
+function renderAll(drop){ renderZR(); renderPartner(); renderMaterial(!!drop); renderEq(); renderHouse(); }
+
+/* ---------- Ablauf ---------- */
+function setN(v){
+  v=Math.max(useDice()?2:1,Math.min(useDice()?Math.min(12,S.zr):S.zr,Math.round(+v||1)));
+  S.n=v; save();
+  rows=[]; pending=null; selectedA=null; shaken=false; eqShown=false; impulseShown=false;
+  hid=pickHide(); open=NONE(); phase='shake'; setSplit(split());
+  hideLinks(); renderAll(false);
+  setMsg(S.partner?`${nameA()}: Schüttle die Box!`:'Schüttle die Box!',false,'shake');
+}
+function shake(){
+  if(busy) return; busy=true; rattle(); hideLinks();
+  const el=usePlates()?$('#plates'):$('#box');
+  el.classList.remove('shaking'); void el.offsetWidth; el.classList.add('shaking');
+  setTimeout(()=>{ el.classList.remove('shaking'); setSplit(split()); shaken=true; busy=false; afterShake(); },650);
+}
+function addRow(a){ if(rows.some(r=>r.a===a)) return false; rows.push({a,b:S.n-a}); return true; }
+function later(fn,ms){ const s=msgSeq; setTimeout(()=>{ if(s===msgSeq) fn(); },ms); }
+function afterAdd(isNew){
+  if(!isNew) return;
+  const P=possibleList().length;
+  if(rows.length===P){ full(); return; }
+  const th=Math.min(5,Math.ceil(P/2));
+  if(!impulseShown&&S.n>=4&&rows.length>=th){ impulseShown=true; later(()=>setMsg(S.sorted?'Fehlen noch welche? Wie kannst du sicher sein? Tipp: Schau dir das Muster im Haus an.':'Fehlen noch welche? Wie kannst du sicher sein? Sprecht darüber und ordnet dann das Haus.',true,'missing'),1700); }
+}
+function afterShake(){
+  open=NONE(); eqShown=false; pending=null; selectedA=null;
+  if(S.partner){
+    hid=NONE(); phase='cover'; renderAll(true);
+    setMsg(`${nameA()}: Schau genau hin und decke eine Kammer zu. Dann gib das Gerät an ${nameB()}.`,true,'cover');
+    return;
+  }
+  hid=pickHide();
+  const needA=S.mode==='self'||hid.left, needB=S.mode==='self'||hid.right;
+  if(!needA&&!needB){
+    const isNew=addRow(left); selectedA=left; renderAll(true); highlightRow(left);
+    setMsg(isNew?`Links ${left}, rechts ${right}.`:`${left} und ${right} steht schon im Haus.`,true,isNew?null:'already');
+    afterAdd(isNew);
+  } else {
+    pending={a:left,b:right,need:{a:needA,b:needB},val:{a:'',b:''},active:needA?'a':'b'};
+    renderAll(true);
+    if(S.mode==='self'&&!hid.left&&!hid.right) setMsg('Zähle: Wie viele liegen links, wie viele rechts?',true,'count');
+    else if(hid.left&&hid.right) setMsg('Beide Kammern sind zu. Wie viele liegen links, wie viele rechts?',true,'count');
+    else if(S.mode==='self') setMsg('Nicht alles ist zu sehen. Wie viele liegen links, wie viele rechts?',true,'count');
+    else setMsg(hid.left?`Rechts ${right}. Wie viele sind links versteckt?`:`Links ${left}. Wie viele sind rechts versteckt?`,true,'hidden');
+  }
+}
+function cover(side){
+  if(phase!=='cover') return;
+  hid={left:side==='left',right:side==='right'}; open=NONE(); phase='answer';
+  pending={a:left,b:right,need:{a:side==='left',b:side==='right'},val:{a:'',b:''},active:side==='left'?'a':'b'};
+  renderAll(false);
+  setMsg(`${nameB()}: Wie viele sind versteckt?`,true,'hidden');
+}
+function chamberRound(v){
+  setSplit(v); left=v; right=S.n-v; shaken=true; open=NONE(); eqShown=false; selectedA=null;
+  hid=usePlates()?NONE():{left:false,right:true}; phase=S.partner?'answer':'shake';
+  pending={a:v,b:S.n-v,need:{a:false,b:true},val:{a:'',b:''},active:'b'};
+  hideLinks(); renderAll(true);
+  setMsg(usePlates()?`${v} Plättchen sind blau. Wie viele sind rot?`:`Links liegen ${v}. Wie viele fehlen bis ${S.n}?`,true,'hidden');
+}
+function key(k){
+  if(!pending) return;
+  if(k==='ok') return check();
+  const f=pending.active; if(!pending.need[f]) return;
+  const maxLen=String(S.n).length; let v=pending.val[f];
+  if(k==='del') v=v.slice(0,-1);
+  else if(v==='0') v=k;
+  else if(v.length<maxLen) v+=k;
+  pending.val[f]=v;
+  const other=f==='a'?'b':'a';
+  if(k!=='del'&&v.length===maxLen&&pending.need[other]&&pending.val[other]==='') pending.active=other;
+  renderHouse();
+}
+function check(){
+  if(!pending) return;
+  for(const k of ['a','b']) if(pending.need[k]&&pending.val[k]===''){ pending.active=k; renderHouse(); setMsg('Tippe zuerst eine Zahl ein.',true); return; }
+  const ok={a:true,b:true}; let all=true;
+  for(const k of ['a','b']) if(pending.need[k]){ ok[k]=+pending.val[k]===pending[k]; if(!ok[k]) all=false; }
+  if(all){
+    revealAll(); const a=pending.a; const isNew=addRow(a); selectedA=a; pending=null;
+    let extra='';
+    if(S.partner){ turn=1-turn; phase='shake'; extra=` Jetzt ist ${nameA()} dran: Schüttle die Box.`; }
+    renderAll(false); highlightRow(a);
+    setMsg((isNew?`Richtig! ${left} und ${right} sind ${S.n}.`:`Richtig! ${left} und ${right} steht schon im Haus.`)+extra,true,'correct');
+    afterAdd(isNew);
+  } else {
+    for(const k of ['a','b']) if(pending.need[k]&&!ok[k]) pending.val[k]='';
+    pending.active=(pending.need.a&&!ok.a)?'a':'b';
+    renderHouse(); const pr=document.querySelector('.prow'); if(pr) pr.classList.add('nope');
+    setMsg('Noch nicht. Zähl noch einmal nach.',true,'wrong');
+  }
+}
+function selectRow(r){
+  if(busy) return;
+  pending=null; setSplit(r.a); shaken=true; revealAll(); selectedA=r.a;
+  if(S.partner) phase='shake';
+  renderAll(false); highlightRow(r.a);
+  setMsg(r.a===r.b?`${r.a} und ${r.b} sind ${S.n}. Diese Zerlegung hat keinen Tauschpartner.`:`${r.a} und ${r.b} sind ${S.n}. Der Tauschpartner ist ${r.b} und ${r.a}.`,true);
+}
+function highlightRow(a){
+  const el=document.querySelector(`.hrow[data-a="${a}"]:not(.blank)`); if(!el) return;
+  const hb=$('#hbody'); const top=el.offsetTop-hb.offsetTop;
+  if(top<hb.scrollTop||top+el.offsetHeight>hb.scrollTop+hb.clientHeight) hb.scrollTop=top-hb.clientHeight/2;
+  el.classList.add('pop'); setTimeout(()=>drawLinks(el),90);
+}
+function full(){
+  later(()=>setMsg(`Das Haus ist voll! Alle ${possibleList().length} Zerlegungen gefunden.`,true,'full'),1100);
+  const h=$('#house'); h.classList.remove('full'); void h.offsetWidth; h.classList.add('full');
+}
+/* Nachbarhäuser */
+function plusOne(){
+  const max=useDice()?Math.min(12,S.zr):S.zr;
+  if(S.n>=max){ setMsg(useDice()?'Mit zwei Würfeln geht höchstens 12.':`Mehr als ${S.zr} geht im Zahlenraum bis ${S.zr} nicht.`,true); return; }
+  const old=S.n; S.n++; save();
+  rows=rows.map(r=>({a:r.a,b:r.b+1})).filter(r=>possible(r.a));
+  if(useDice()&&right>=6) left+=1; else right+=1;
+  plates.splice(rnd(plates.length+1),0,false);
+  pending=null; impulseShown=true; if(selectedA!==null&&!rows.some(r=>r.a===selectedA)) selectedA=null;
+  hideLinks(); renderAll(false);
+  setMsg(useDice()?`Ein Auge mehr auf dem rechten Würfel: Aus den Zerlegungen von ${old} werden Zerlegungen von ${S.n}. Welche fehlt jetzt noch?`:`Eine Kugel mehr in die rechte Kammer: Aus jeder Zerlegung von ${old} wird eine von ${S.n}. Welche fehlt jetzt noch?`,true);
+}
+function minusOne(){
+  if(S.n<=(useDice()?2:1)) return;
+  const old=S.n; S.n--; save();
+  rows=rows.filter(r=>r.b>0).map(r=>({a:r.a,b:r.b-1})).filter(r=>possible(r.a));
+  const minR=useDice()?1:0;
+  if(right>minR){ right--; const i=plates.lastIndexOf(false); if(i>=0) plates.splice(i,1); } else { left--; const i=plates.lastIndexOf(true); if(i>=0) plates.splice(i,1); }
+  pending=null; impulseShown=true; if(selectedA!==null&&!rows.some(r=>r.a===selectedA)) selectedA=null;
+  hideLinks(); renderAll(false);
+  setMsg(useDice()?`Ein Auge weniger: Aus den Zerlegungen von ${old} werden Zerlegungen von ${S.n}.`:`Rechts eine Kugel weniger: Aus den Zerlegungen von ${old} werden Zerlegungen von ${S.n}. ${old} und 0 fällt weg.`,true);
+}
+
+/* ---------- Verbindungslinien ---------- */
+let linkT;
+function hideLinks(){ $('#links').classList.remove('show'); document.querySelectorAll('.glow').forEach(e=>e.classList.remove('glow')); }
+function drawLinks(rowEl){
+  if(!S.links||!rowEl||!S.house) return;
+  const svg=$('#links'), W=innerWidth, H=innerHeight; svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  hideLinks(); let html='';
+  const pl=usePlates();
+  [[pl?'#plates':'#chL','.l','var(--blue)',-1],[pl?'#plates':'#chR','.r','var(--red)',1]].forEach(([cs,cc,col,dir])=>{
+    const src=$(cs), cell=rowEl.querySelector(cc), a=src.getBoundingClientRect(), b=cell.getBoundingClientRect();
+    const x1=a.left+a.width/2+(pl?dir*a.width/6:0), y1=a.top+a.height/2, x2=b.left+b.width/2, y2=b.top+b.height/2;
+    const d=Math.abs(x2-x1)>Math.abs(y2-y1)
+      ?`M${x1} ${y1} C${(x1+x2)/2} ${y1} ${(x1+x2)/2} ${y2} ${x2} ${y2}`
+      :`M${x1} ${y1} C${x1} ${(y1+y2)/2} ${x2} ${(y1+y2)/2} ${x2} ${y2}`;
+    html+=`<path d="${d}" style="fill:none;stroke:${col};stroke-width:5;stroke-linecap:round;stroke-dasharray:1 11"/><circle cx="${x1}" cy="${y1}" r="7" style="fill:${col}"/><circle cx="${x2}" cy="${y2}" r="7" style="fill:${col}"/>`;
+    void src.offsetWidth; if(!pl) src.classList.add('glow'); cell.classList.add('glow');
+  });
+  svg.innerHTML=html; svg.classList.add('show');
+  clearTimeout(linkT); linkT=setTimeout(hideLinks,2600);
+}
+
+/* ---------- Würfel ---------- */
+function diceSpec(){
+  const ch=S.diceTarget==='chamber';
+  if(S.zr===10) return {type:'pip',count:ch?1:2};
+  if(S.zr===20) return {type:'pip',count:ch?2:3};
+  return {type:'digit',count:2};
+}
+const total=()=>dice.sp.type==='pip'?dice.vals.reduce((s,v)=>s+v,0):dice.vals[0]*10+dice.vals[1];
+function renderDice(rolling){
+  const tray=$('#diceTray'); tray.hidden=false; tray.innerHTML='';
+  dice.vals.forEach((v,i)=>{
+    const d=document.createElement('div'); d.className='die'+(rolling?' rolling':'');
+    if(dice.sp.type==='pip') d.innerHTML=Array.from({length:9},(_,k)=>`<i class="${PIPS[v].includes(k)?'on':''}"></i>`).join('');
+    else { d.classList.add('digit'); d.innerHTML=`<b>${v}</b><small>${i===0?'Zehner':'Einer'}</small>`; }
+    d.setAttribute('role','img'); d.setAttribute('aria-label',String(v)); tray.appendChild(d);
+  });
+  if(!rolling&&dice.vals.length>1){ const s=document.createElement('span'); s.className='dsum'; s.textContent='= '+total(); tray.appendChild(s); }
+}
+function roll(){
+  if(busy) return; busy=true;
+  const sp=diceSpec(); let t=0;
+  const iv=setInterval(()=>{
+    dice={sp,vals:Array.from({length:sp.count},()=>sp.type==='pip'?1+rnd(6):rnd(10))};
+    renderDice(true);
+    if(++t>=8){
+      clearInterval(iv); busy=false; renderDice(false);
+      const v=total();
+      if(S.diceTarget==='chamber'){
+        if(v>S.n){ setMsg(`${v} ist mehr als ${S.n}. So viele passen nicht in die Box. Würfle noch einmal.`,true); return; }
+        if(useDice()&&!possible(v)){ setMsg(`Dann bräuchte der rechte Würfel ${S.n-v} Augen. Das geht nicht. Würfle noch einmal.`,true); return; }
+        chamberRound(v);
+      } else {
+        if(v<1||v>S.zr){ setMsg(`${v} passt nicht in den Zahlenraum bis ${S.zr}. Würfle noch einmal.`,true); return; }
+        if(useDice()&&(v<2||v>12)){ setMsg(`${v} lässt sich nicht mit zwei Würfeln zeigen. Würfle noch einmal.`,true); return; }
+        setN(v); setMsg(`Gewürfelt: ${v}. ${S.partner?nameA()+': ':''}Schüttle die Box!`,true,'shake');
+      }
+    }
+  },70);
+}
+
+/* ---------- Ton, Sprache, eigene Ansagen ---------- */
+let ac;
+function rattle(){
+  if(!S.sound) return;
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==='suspended') ac.resume();
+    const dur=.62, sr=ac.sampleRate, buf=ac.createBuffer(1,Math.floor(sr*dur),sr), d=buf.getChannelData(0);
+    const clicks=Math.min(70,10+S.n*2);
+    for(let c=0;c<clicks;c++){ const t=rnd(d.length-700), amp=.25+Math.random()*.5; for(let i=0;i<600;i++) d[t+i]+=(Math.random()*2-1)*amp*Math.exp(-i/80); }
+    const src=ac.createBufferSource(); src.buffer=buf;
+    const f=ac.createBiquadFilter(); f.type=usePlates()?'highpass':'bandpass'; f.frequency.value=usePlates()?3500:2600; f.Q.value=.8;
+    const g=ac.createGain(); g.gain.value=.55;
+    src.connect(f).connect(g).connect(ac.destination); src.start();
+  }catch(e){}
+}
+function tts(t){
+  if(!('speechSynthesis' in window)||!t) return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(t); u.lang='de-DE'; u.rate=.9;
+    const vs=speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith('de')); const v=vs.find(v=>v.localService)||vs[0]; if(v) u.voice=v;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function speak(){
+  if(lastClip&&voices[lastClip]){ try{ if('speechSynthesis' in window) speechSynthesis.cancel(); new Audio(voices[lastClip]).play(); return; }catch(e){} }
+  tts(lastMsg);
+}
+function setMsg(t,auto,clip){ msgSeq++; lastMsg=t; lastClip=clip||null; $('#msg').textContent=t; if(auto&&S.speak) speak(); }
+
+const CLIPS=[['shake','Schüttle die Box!'],['correct','Richtig!'],['wrong','Noch nicht. Zähl noch einmal nach.'],['hidden','Wie viele sind versteckt?'],['count','Wie viele liegen links, wie viele rechts?'],['already','Das steht schon im Haus.'],['missing','Fehlen noch welche? Wie kannst du sicher sein?'],['full','Das Haus ist voll!'],['cover','Schau genau hin und decke eine Kammer zu.']];
+let rec=null,recKey=null;
+async function toggleRec(k){
+  if(rec&&rec.state==='recording'){ rec.stop(); return; }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const r=new MediaRecorder(stream); const chunks=[]; rec=r; recKey=k;
+    r.ondataavailable=e=>chunks.push(e.data);
+    r.onstop=()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      const fr=new FileReader();
+      fr.onload=()=>{
+        voices[k]=fr.result;
+        try{ localStorage.setItem(VKEY,JSON.stringify(voices)); }catch(e){ setMsg('Die Aufnahme ist zu lang zum Speichern. Bitte kürzer sprechen.'); delete voices[k]; }
+        rec=null; recKey=null; renderPanel();
+      };
+      fr.readAsDataURL(new Blob(chunks,{type:r.mimeType||'audio/webm'}));
+    };
+    r.start(); renderPanel();
+    setTimeout(()=>{ if(r.state==='recording') r.stop(); },6000);
+  }catch(e){ rec=null; recKey=null; setMsg('Das Mikrofon ist hier nicht verfügbar. Öffne die Seite direkt im Browser und erlaube das Mikrofon.'); }
+}
+
+/* ---------- Bewegungssensor ---------- */
+let last=null,lastShake=0;
+function onMotion(e){
+  const a=e.accelerationIncludingGravity||e.acceleration; if(!a||a.x==null) return;
+  gotMotion=true;
+  if(last){
+    const d=Math.abs(a.x-last.x)+Math.abs(a.y-last.y)+Math.abs(a.z-last.z);
+    if(d>26&&Date.now()-lastShake>1300){ lastShake=Date.now(); shake(); }
+  }
+  last={x:a.x,y:a.y,z:a.z};
+}
+async function toggleMotion(){
+  if(motionOn){ window.removeEventListener('devicemotion',onMotion); motionOn=false; renderPanel(); setMsg('Bewegungssensor aus.'); return; }
+  try{
+    if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){
+      const r=await DeviceMotionEvent.requestPermission();
+      if(r!=='granted'){ setMsg('Der Bewegungssensor wurde nicht erlaubt. Du kannst weiter mit dem Knopf schütteln.'); return; }
+    }
+    window.addEventListener('devicemotion',onMotion); motionOn=true; gotMotion=false; renderPanel();
+    setMsg('Bewegungssensor an. Schüttle das Gerät!');
+    setTimeout(()=>{ if(motionOn&&!gotMotion) setMsg('Es kommen keine Bewegungsdaten an. Öffne die Seite direkt im Browser (Safari oder Chrome) und versuche es noch einmal.'); },3000);
+  }catch(e){ setMsg('Der Bewegungssensor ist hier nicht verfügbar. Öffne die Seite direkt im Browser.'); }
+}
+
+/* ---------- Code-Dialog ---------- */
+let dlgOk=null;
+function askCode(title,text,onOk,forgot){
+  $('#dlgT').textContent=title; $('#dlgP').textContent=text; $('#dlgE').textContent='';
+  const inp=$('#dlgIn'); inp.value=''; dlgOk=onOk; $('#dlgForgot').hidden=!forgot;
+  $('#dlg').hidden=false; setTimeout(()=>inp.focus(),50);
+}
+function closeDlg(){ $('#dlg').hidden=true; dlgOk=null; }
+function submitDlg(){ if(!dlgOk) return; const err=dlgOk($('#dlgIn').value.trim()); if(err) $('#dlgE').textContent=err; else closeDlg(); }
+function setKid(on){ S.kid=on; save(); $('#settings').open=false; renderZR(); }
+function unlockFlow(){
+  askCode('Lehrkraft-Ansicht','Gib den Code ein.',v=>v===S.code?(setKid(false),null):'Der Code stimmt nicht.',true);
+}
+function forgotFlow(){
+  const x=12+rnd(8), y=13+rnd(7);
+  askCode('Rechenfrage für Erwachsene',`Wie viel ist ${x} · ${y}?`,v=>+v===x*y?(setKid(false),null):'Das stimmt nicht.',false);
+}
+
+/* ---------- Einstellungen ---------- */
+const SEGS=[
+  ['material','Material',[['box','Schüttelbox'],['plates','Wendeplättchen'],['dice','Würfel']],'Wendeplättchen: Blau zählt links, Rot rechts, ohne Deckel. Würfel: In jeder Kammer liegt ein Würfel. Es gibt nur Zerlegungen mit 1 bis 6 Augen, also Dachzahlen von 2 bis 12.'],
+  ['hide','Kammern',[['none','Beide offen'],['left','Links zu'],['right','Rechts zu'],['both','Beide zu'],['random','Zufällig eine zu']]],
+  ['mode','Ins Haus eintragen',[['auto','Automatisch'],['self','Kinder tragen ein']],'Bei verdeckter Kammer tragen die Kinder die versteckte Zahl immer selbst ein.'],
+  ['eq','Plusaufgabe',[['button','Auf Knopfdruck'],['always','Immer'],['off','Aus']]],
+  ['diceTarget','Der Würfel bestimmt',[['roof','die Dachzahl'],['chamber','die linke Kammer']],'Bei „linke Kammer“ würfeln die Kinder, wie viele links liegen, und ergänzen bis zur Dachzahl.'],
+  ['rand','Kugeln fallen',[['real','Wie in echt'],['uniform','Alle gleich oft']],'In einer echten Box landen fast nie alle Kugeln auf einer Seite. „Alle gleich oft“ hilft, alle Zerlegungen zu finden.']
+];
+const TOGS=[['boxnum','Zahl auf der Box zeigen'],['house','Zahlenhaus zeigen'],['sorted','Haus ordnen'],['empty','Leere Zeilen zeigen (bis 20)'],['pattern','Muster im Haus zeigen (+1 / −1)'],['tags','Anzahl unter den Kammern zeigen'],['links','Verbindungslinien zeigen'],['sound','Schüttelgeräusch'],['speak','Automatisch vorlesen']];
+function h2(p,t){ const h=document.createElement('h2'); h.textContent=t; p.appendChild(h); }
+function hint(p,t){ const e=document.createElement('p'); e.className='hint'; e.textContent=t; p.appendChild(e); }
+function renderPanel(){
+  const p=$('#panel'); const st=p.scrollTop; p.innerHTML='';
+  SEGS.forEach(([k,label,opts,h])=>{
+    h2(p,label);
+    const seg=document.createElement('div'); seg.className='seg'; seg.setAttribute('role','group'); seg.setAttribute('aria-label',label);
+    opts.forEach(([v,t])=>{ const b=document.createElement('button'); b.type='button'; b.textContent=t; b.setAttribute('aria-pressed',S[k]===v); b.onclick=()=>onSetting(k,v); seg.appendChild(b); });
+    p.appendChild(seg); if(h) hint(p,h);
+  });
+  h2(p,'Partnermodus');
+  const pl=document.createElement('label'); const pc=document.createElement('input'); pc.type='checkbox'; pc.checked=!!S.partner;
+  pc.onchange=()=>onSetting('partner',pc.checked); pl.append(pc,'Zwei Kinder arbeiten zusammen'); p.appendChild(pl);
+  const nm=document.createElement('div'); nm.className='names';
+  [0,1].forEach(i=>{ const inp=document.createElement('input'); inp.type='text'; inp.value=S.names[i]; inp.setAttribute('aria-label','Name '+(i+1)); inp.maxLength=16;
+    inp.onchange=()=>{ S.names[i]=inp.value.trim()||('Kind '+(i+1)); save(); renderPartner(); }; nm.appendChild(inp); });
+  p.appendChild(nm);
+  hint(p,'Ein Kind schüttelt und deckt eine Kammer zu, das andere ergänzt. Danach wird gewechselt. Ohne Punkte, alle Zerlegungen sammeln beide gemeinsam.');
+  h2(p,'Anzeige und Ton');
+  TOGS.forEach(([k,t])=>{
+    const l=document.createElement('label'); const c=document.createElement('input'); c.type='checkbox'; c.checked=!!S[k];
+    c.onchange=()=>onSetting(k,c.checked); l.append(c,t); p.appendChild(l);
+  });
+  h2(p,'Eigene Ansagen');
+  hint(p,'Nimm die Sätze mit deiner Stimme auf (max. 6 Sekunden). Sätze mit Zahlen liest weiter die Computerstimme vor.');
+  CLIPS.forEach(([k,t])=>{
+    const r=document.createElement('div'); r.className='vrow';
+    const s=document.createElement('span'); s.innerHTML=esc(t)+(voices[k]?' <b class="mark">✓</b>':''); r.appendChild(s);
+    const recB=document.createElement('button'); recB.type='button';
+    const active=recKey===k; recB.textContent=active?'■ Stopp':'● Auf'; recB.className=active?'rec':'';
+    recB.setAttribute('aria-label',active?'Aufnahme stoppen':'Aufnehmen: '+t); recB.onclick=()=>toggleRec(k); r.appendChild(recB);
+    if(voices[k]){
+      const pb=document.createElement('button'); pb.type='button'; pb.textContent='▶'; pb.setAttribute('aria-label','Anhören'); pb.onclick=()=>{ try{new Audio(voices[k]).play();}catch(e){} }; r.appendChild(pb);
+      const db=document.createElement('button'); db.type='button'; db.textContent='✕'; db.setAttribute('aria-label','Aufnahme löschen'); db.onclick=()=>{ delete voices[k]; try{localStorage.setItem(VKEY,JSON.stringify(voices));}catch(e){} renderPanel(); }; r.appendChild(db);
+    }
+    p.appendChild(r);
+  });
+  h2(p,'Gerät schütteln');
+  const mb=document.createElement('button'); mb.type='button'; mb.className='tool'; mb.textContent=motionOn?'Bewegungssensor ausschalten':'Bewegungssensor einschalten'; mb.onclick=toggleMotion; p.appendChild(mb);
+  hint(p,'Auf iPad und Handy einmal einschalten und erlauben. Tastatur: S = schütteln, W = würfeln.');
+  h2(p,'Kinder-Ansicht');
+  const kb=document.createElement('button'); kb.type='button'; kb.className='tool'; kb.textContent='Kinder-Ansicht einschalten';
+  kb.onclick=()=>askCode('Kinder-Ansicht','Lege einen Code mit 4 Ziffern fest. Damit kommst du über „🔒 Lehrkraft“ zurück.',v=>{ if(!/^\d{4}$/.test(v)) return 'Bitte genau 4 Ziffern eingeben.'; S.code=v; setKid(true); return null; },false);
+  p.appendChild(kb);
+  hint(p,'Blendet Einstellungen, Zahlenraum, Zahlwahl und „Haus leeren“ aus. Würfeln, Schütteln und das Haus bleiben.');
+  const done=document.createElement('button'); done.type='button'; done.className='tool done'; done.textContent='Fertig'; done.onclick=()=>{ $('#settings').open=false; }; p.appendChild(done);
+  p.scrollTop=st;
+}
+function onSetting(k,v){
+  S[k]=v; save();
+  if(k==='pattern'&&v) S.sorted=true;
+  if(k==='sorted'&&!v) S.pattern=false;
+  if(k==='hide'||k==='material'){ hid=pickHide(); open=NONE(); pending=null; }
+  if(k==='material') setN(S.n);
+  if(k==='mode'){ pending=null; }
+  if(k==='partner'){ turn=0; phase='shake'; pending=null; hid=pickHide(); open=NONE(); setMsg(v?`${nameA()}: Schüttle die Box!`:'Schüttle die Box!',false,'shake'); }
+  if(k==='house'&&!v) hideLinks();
+  save(); renderPanel(); renderAll(false);
+}
+
+/* ---------- Ereignisse ---------- */
+$('#shakeBtn').onclick=shake;
+$('#diceBtn').onclick=roll;
+$('#clearBtn').onclick=()=>{ rows=[]; selectedA=null; pending=null; impulseShown=false; hideLinks(); renderAll(false); setMsg('Das Haus ist leer. Schüttle die Box!',false,'shake'); };
+$('#sayBtn').onclick=speak;
+[['#lidL','left'],['#lidR','right']].forEach(([id,side])=>$(id).onclick=()=>{ open[side]=!open[side]; renderMaterial(false); renderEq(); });
+$('#eqBtn').onclick=()=>{ eqShown=!eqShown; renderEq(); };
+const setHouse=v=>{ S.house=v; save(); if(!v) hideLinks(); renderPanel(); renderHouse(); };
+$('#houseBtn').onclick=()=>setHouse(!S.house);
+$('#houseOn').onclick=()=>setHouse(true);
+function animateSort(apply){
+  const before={};
+  document.querySelectorAll('#hbody .hrow:not(.blank)').forEach(el=>before[el.dataset.a]=el.getBoundingClientRect().top);
+  apply(); renderPanel(); renderHouse();
+  document.querySelectorAll('#hbody .hrow:not(.blank)').forEach(el=>{
+    const b=before[el.dataset.a]; if(b==null) return;
+    const dy=b-el.getBoundingClientRect().top; if(!dy) return;
+    el.style.transition='none'; el.style.transform=`translateY(${dy}px)`; el.getBoundingClientRect();
+    el.style.transition='transform .7s cubic-bezier(.3,.8,.3,1)'; el.style.transform='';
+  });
+}
+$('#sortBtn').onclick=()=>{
+  const on=!S.sorted;
+  animateSort(()=>{ S.sorted=on; if(!on) S.pattern=false; save(); });
+  setMsg(on?'Jetzt ist das Haus geordnet. Was fällt euch auf? Fehlt noch eine Zerlegung?':'Das Haus zeigt wieder die Reihenfolge, in der ihr die Zerlegungen gefunden habt.',true);
+};
+$('#patBtn').onclick=()=>{ animateSort(()=>{ S.pattern=!S.pattern; if(S.pattern) S.sorted=true; save(); });
+  if(S.pattern) setMsg('Schau: Links wird es immer eins mehr, rechts immer eins weniger.',true); };
+$('#plusOne').onclick=plusOne;
+$('#minusOne').onclick=minusOne;
+$('#lockBtn').onclick=unlockFlow;
+$('#dlgX').onclick=closeDlg;
+$('#dlgOk').onclick=submitDlg;
+$('#dlgForgot').onclick=forgotFlow;
+$('#dlgIn').addEventListener('keydown',e=>{ if(e.key==='Enter') submitDlg(); if(e.key==='Escape') closeDlg(); });
+const nIn=$('#nIn');
+nIn.addEventListener('change',()=>setN(nIn.value));
+nIn.addEventListener('keydown',e=>{ if(e.key==='Enter') nIn.blur(); });
+function hold(btn,delta){
+  let t1,t2; const stop=()=>{clearTimeout(t1);clearInterval(t2);};
+  btn.addEventListener('pointerdown',e=>{ e.preventDefault(); setN(S.n+delta); t1=setTimeout(()=>{t2=setInterval(()=>setN(S.n+delta),90);},420); });
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,stop));
+  btn.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); setN(S.n+delta); } });
+}
+hold($('#minus'),-1); hold($('#plus'),1);
+const kp=$('#keypad');
+['1','2','3','4','5','6','7','8','9','del','0','ok'].forEach(k=>{
+  const b=document.createElement('button'); b.type='button';
+  b.textContent=k==='del'?'⌫':k==='ok'?'Prüfen':k; if(k==='ok') b.className='ok';
+  b.setAttribute('aria-label',k==='del'?'Löschen':k==='ok'?'Prüfen':k);
+  b.onclick=()=>key(k); kp.appendChild(b);
+});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||!$('#dlg').hidden) return;
+  if(pending&&/^[0-9]$/.test(e.key)){ key(e.key); return; }
+  if(pending&&e.key==='Backspace'){ key('del'); return; }
+  if(pending&&e.key==='Enter'){ e.preventDefault(); check(); return; }
+  if(e.key==='s'||e.key==='S') shake();
+  if(e.key==='w'||e.key==='W') roll();
+});
+document.addEventListener('pointerdown',e=>{ const d=$('#settings'); if(d.open&&e.target.isConnected&&!d.contains(e.target)&&$('#dlg').hidden) d.open=false; });
+let rT; window.addEventListener('resize',()=>{ clearTimeout(rT); rT=setTimeout(()=>{ renderMaterial(false); hideLinks(); },120); });
+
+renderPanel();
+setN(Math.min(S.n,S.zr));
+})();
+</script>
+</body>
+</html>

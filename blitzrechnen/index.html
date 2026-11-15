@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Blitzrechnen</title>
+<meta name="description" content="Blitzrechnen im Zehner- und Zwanzigerfeld für die Grundschule – mit Punkten, Tieren und Würfeln, zum Zeigen am Digiboard oder Üben am Tablet.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Blitzrechnen">
+<meta name="theme-color" content="#F7F4EE">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+<style>
+/* Layout: one-screen board app — prompt above, card(s) in the middle, answer chips and big controls below; settings slide in from the right */
+:root{
+  --dot-a:#D93A3A;
+  --dot-b:#2F6FB3;
+  --dot-c:#2F8A50;
+  --new-bg:#D8E7F7;
+  --board:#F7F4EE;
+  --ink:#1F1A16;
+  --muted:#6B625A;
+  --frame:#FF8A47;      /* orange frame from the Canva cards */
+  --frame-deep:#D9622A;
+  --cell:#FFFFFF;
+  --line:#1F1A16;
+  --go:#2F6FB3;
+  --go-deep:#1E4C80;
+  --go-ink:#FFFFFF;
+  --new:#2F6FB3;        /* animals that come in */
+  --soft:#ECE6DC;
+  --font-read:"Andika", "Segoe UI", "Trebuchet MS", system-ui, sans-serif;
+  --font-num:"Fredoka", "Arial Rounded MT Bold", "Segoe UI", system-ui, sans-serif;
+  color-scheme:light;
+}
+html,body{height:100%}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}
+body{margin:0}
+[hidden]{display:none!important}
+.legal{width:100%;text-align:center;font-size:13px;color:var(--muted)}
+.legal a{color:var(--muted)}
+body{background:var(--board);color:var(--ink);font-family:var(--font-read);font-size:18px;overflow:hidden}
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr auto;gap:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;box-sizing:border-box}
+header{display:flex;align-items:center;gap:8px 12px;justify-content:space-between;min-width:0}
+.brand{font-family:var(--font-num);font-weight:700;font-size:clamp(20px,2.6vw,30px);display:flex;align-items:center;gap:10px}
+.brand .bolt{width:1.1em;height:1.1em;color:var(--frame-deep)}
+.meta{color:var(--muted);font-size:clamp(14px,1.4vw,18px);font-family:var(--font-num);font-variant-numeric:tabular-nums;text-align:center}
+.tools{display:flex;gap:8px}
+.icon-btn{font:600 16px var(--font-num);border:2px solid var(--line);background:var(--cell);color:var(--ink);border-radius:12px;padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;min-height:44px}
+.icon-btn svg{width:20px;height:20px}
+.icon-btn:hover{background:var(--soft)}
+button:focus-visible{outline:4px solid var(--go);outline-offset:3px}
+
+main{min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:clamp(8px,1.8vh,18px)}
+.question{font-weight:700;font-size:clamp(26px,min(4.4vw,6.5vh),58px);text-align:center;line-height:1.15;min-height:1.2em;text-wrap:balance;display:flex;flex-wrap:wrap;gap:.15em 1em;justify-content:center}
+.question.many{font-size:clamp(20px,min(2.8vw,4.2vh),38px);flex-direction:column;flex-wrap:nowrap;gap:.15em}
+.question .hint{font-weight:400;color:var(--muted);font-size:.55em;align-self:center;width:100%}
+
+.stage{display:flex;gap:clamp(10px,2vw,28px);justify-content:center;align-items:center;width:100%;flex:1 1 auto;min-height:110px;container-type:size}
+.stage.duo{padding-top:1.7em;box-sizing:border-box}
+main{--reserve:400px}
+.wrap{--ratio:1.6;position:relative;width:min(100%, calc((100dvh - var(--reserve)) * var(--ratio)));width:min(100cqw, calc(100cqh * var(--ratio)));max-width:1200px;aspect-ratio:var(--ratio)}
+.wrap.f20{--ratio:3.3;max-width:1500px}
+.stage.duo .wrap{width:min(48%, calc((100dvh - var(--reserve) - 40px) * var(--ratio)));width:min(calc(50cqw - 14px), calc(100cqh * var(--ratio)))}
+.tag{position:absolute;top:-1.6em;left:0;font:700 clamp(15px,1.6vw,22px) var(--font-num);color:var(--muted)}
+.card{position:absolute;inset:0;background:var(--frame);border-radius:clamp(10px,1.4vw,20px);padding:clamp(6px,1.4%,18px);box-sizing:border-box;
+  display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(2,1fr);gap:clamp(4px,1%,12px);box-shadow:0 6px 0 var(--frame-deep)}
+.card.f20v{grid-template-columns:repeat(5,1fr);grid-template-rows:1fr 1fr .18fr 1fr 1fr}
+.wrap.f20v{--ratio:.82}
+.card.f20{grid-template-columns:repeat(5,1fr) .25fr repeat(5,1fr);padding:clamp(5px,.8%,14px);gap:clamp(3px,.5%,9px)}
+.cell{background:var(--cell);border:clamp(2px,.3vw,4px) solid var(--line);border-radius:clamp(5px,.8vw,12px);display:flex;align-items:center;justify-content:center;overflow:hidden;min-width:0}
+.cell svg{width:82%;height:88%}
+.cell.new{border-color:var(--new);box-shadow:inset 0 0 0 clamp(2px,.3vw,4px) var(--new)}
+.cell.new svg,.cell.newc svg{animation:pop .35s ease-out both}
+.cell.newc{background:var(--new-bg)}
+.cell.gone svg{opacity:.22}
+.cell.gone{background:repeating-linear-gradient(135deg,var(--cell) 0 8px,var(--soft) 8px 16px)}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+.cover{position:absolute;inset:0;border-radius:clamp(10px,1.4vw,20px);background:var(--frame);box-shadow:0 6px 0 var(--frame-deep);display:flex;align-items:center;justify-content:center}
+.cover::before{content:"";position:absolute;inset:clamp(8px,1.4%,18px);border-radius:clamp(6px,.9vw,12px);background:repeating-linear-gradient(135deg,var(--frame) 0 18px,var(--frame-deep) 18px 36px);opacity:.35}
+.cover span{position:relative;font-family:var(--font-num);font-weight:700;color:var(--cell);font-size:clamp(70px,min(14vw,26vh),220px);line-height:1;text-shadow:0 4px 0 var(--frame-deep)}
+.timer{width:min(100%,600px);height:8px;border-radius:4px;background:var(--soft);overflow:hidden;visibility:hidden}
+.timer.on{visibility:visible}
+.timer i{display:block;height:100%;width:100%;background:var(--go);transform-origin:left}
+
+.answer{display:flex;flex-wrap:wrap;gap:8px 12px;justify-content:center;font-family:var(--font-num);font-variant-numeric:tabular-nums;min-height:1em}
+.chip{font-weight:600;font-size:clamp(18px,min(2.4vw,4vh),34px);border-radius:999px;padding:.15em .75em;border:3px solid var(--line);background:var(--cell);white-space:nowrap}
+.chip b{font-weight:700}
+.chip.eq{background:var(--ink);color:var(--cell);border-color:var(--ink)}
+.qa{display:grid;grid-template-columns:auto auto;gap:6px 14px;align-items:center;max-width:100%}
+.qa .qq{font:700 clamp(15px,min(1.9vw,2.9vh),26px) var(--font-read);text-align:right}
+.qa .aa{display:flex;gap:6px;flex-wrap:wrap}
+.qa .chip{font-size:clamp(15px,min(1.9vw,3vh),28px);border-width:2px}
+@media (max-width:600px){.qa{grid-template-columns:1fr}.qa .qq{text-align:left}}
+.cell .dotsvg{width:78%;height:78%}
+.dicebox{position:absolute;inset:0;background:var(--frame);border-radius:clamp(10px,1.4vw,20px);box-shadow:0 6px 0 var(--frame-deep);padding:clamp(8px,2%,22px);box-sizing:border-box;display:flex}
+.dicebox .tray{flex:1;background:var(--cell);border:clamp(2px,.35vw,4px) solid var(--line);border-radius:clamp(6px,.9vw,12px);display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;min-height:0}
+.drow{display:flex;justify-content:space-evenly;align-items:center;width:100%;height:calc(88% / var(--rows,1))}
+.drow + .drow{border-top:2px dashed var(--soft)}
+.dicebox svg{height:84%;aspect-ratio:1;width:auto}
+.sublabel{font-size:14px;color:var(--muted);font-weight:700}
+.swatch{width:22px;height:22px;border-radius:6px;border:2px solid var(--line);display:inline-block}
+.strip{display:flex;gap:6px;align-items:center;font:700 clamp(20px,2.4vw,34px) var(--font-num)}
+.strip svg{width:clamp(34px,4vw,60px);height:clamp(46px,5.5vw,84px)}
+.strip.out svg{opacity:.35}
+
+footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+.big{font:700 clamp(22px,2.6vw,34px) var(--font-num);border:none;border-radius:18px;padding:.45em 1.4em;cursor:pointer;min-height:64px;background:var(--go);color:var(--go-ink);box-shadow:0 5px 0 var(--go-deep)}
+.big:active{transform:translateY(3px);box-shadow:0 2px 0 var(--go-deep)}
+.big.hear{padding:.3em .9em;display:flex;align-items:center;gap:.35em}.big.hear svg{width:1.2em;height:1.2em}
+#btnSpeak .mute{display:none}#btnSpeak.off .wave{display:none}#btnSpeak.off .mute{display:inline}.hear .mute{display:none}
+.big.second{background:var(--cell);color:var(--ink);border:3px solid var(--line);box-shadow:0 5px 0 var(--line)}
+
+/* settings drawer */
+.scrim{position:fixed;inset:0;background:rgba(31,26,22,.35);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(480px,100%);background:var(--cell);z-index:21;overflow-y:auto;box-sizing:border-box;
+  padding:calc(20px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) 20px;
+  display:flex;flex-direction:column;gap:20px;box-shadow:-8px 0 30px rgba(0,0,0,.15)}
+.drawer h2{font-family:var(--font-num);font-size:26px;margin:0}
+.group{display:flex;flex-direction:column;gap:8px}
+.group > span{font-weight:700;font-size:17px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:600 16px var(--font-num);min-height:46px;padding:6px 12px;border-radius:12px;border:2px solid var(--line);background:var(--cell);color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:6px;text-align:left}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--cell)}
+.seg button svg{width:26px;height:32px}
+.seg.list{flex-direction:column}
+.seg.list button{width:100%;display:block}
+.nums button{min-width:46px;justify-content:center;font-variant-numeric:tabular-nums}
+.small{font-size:14px;color:var(--muted);margin:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.link{font:600 15px var(--font-num);background:none;border:none;color:var(--go);cursor:pointer;padding:4px 0;text-decoration:underline}
+@media (prefers-reduced-motion:reduce){.cell.new svg,.cell.newc svg{animation:none}}
+@media (max-width:600px){
+  .icon-btn .lbl{display:none}
+  .icon-btn{padding:6px 9px;min-height:40px}
+  .brand{font-size:20px}.meta{font-size:13px;white-space:nowrap}
+  .stage.duo{flex-direction:column;gap:2em}
+  .stage.duo .wrap{width:min(100cqw, calc((50cqh - 2em) * var(--ratio)))}
+  footer{gap:8px}
+  .big{font-size:19px;min-height:52px;padding:.35em .9em;border-radius:14px}
+  .chip{font-size:17px}
+}
+/* phone held sideways: card left, questions and answers right */
+@media (max-height:520px) and (min-width:560px){
+  .app{gap:6px;padding-block:6px}
+  main{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;
+    grid-template-areas:"stage q" "stage a" "timer a";align-items:center;gap:8px 18px}
+  .stage{grid-area:stage;height:100%;min-height:0}
+  .question{grid-area:q;font-size:clamp(18px,4.5vh,26px);align-self:end}
+  .question.many{font-size:clamp(15px,3.8vh,20px)}
+  .answer{grid-area:a;align-self:start;justify-content:flex-start}
+  .answer .qa{grid-template-columns:1fr}.qa .qq{text-align:left}
+  .timer{grid-area:timer}
+  .chip,.qa .chip{font-size:clamp(14px,3.8vh,20px)}
+  .big{font-size:18px;min-height:46px;padding:.3em .9em}
+  .cover span{font-size:min(22vh,120px)}
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="fox" viewBox="0 0 100 140">
+      <path d="M68 124 Q100 122 94 92 Q90 74 80 82 Q88 104 64 114Z" fill="#E8742A"/>
+      <path d="M88 84 Q96 90 93 100 Q86 94 82 86Z" fill="#FFF6EC"/>
+      <ellipse cx="50" cy="102" rx="26" ry="32" fill="#E8742A"/>
+      <ellipse cx="50" cy="104" rx="14" ry="24" fill="#FFF6EC"/>
+      <rect x="38" y="122" width="8" height="14" rx="4" fill="#4A2A18"/>
+      <rect x="54" y="122" width="8" height="14" rx="4" fill="#4A2A18"/>
+      <path d="M20 40 L28 8 L44 30 L56 30 L72 8 L80 40 Q80 62 50 74 Q20 62 20 40Z" fill="#E8742A"/>
+      <path d="M29 16 L33 32 L40 30Z M71 16 L67 32 L60 30Z" fill="#4A2A18"/>
+      <path d="M22 44 Q38 50 50 74 Q28 66 22 44Z M78 44 Q62 50 50 74 Q72 66 78 44Z" fill="#FFF6EC"/>
+      <circle cx="39" cy="45" r="3.6" fill="#1F1A16"/><circle cx="61" cy="45" r="3.6" fill="#1F1A16"/>
+      <ellipse cx="50" cy="66" rx="4" ry="3" fill="#1F1A16"/>
+    </symbol>
+    <symbol id="dot" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="currentColor"/></symbol>
+    <symbol id="owl" viewBox="0 0 100 140">
+      <path d="M22 50 L22 18 L40 38Z M78 50 L78 18 L60 38Z" fill="#6E4E36"/>
+      <ellipse cx="50" cy="82" rx="32" ry="46" fill="#8A6446"/>
+      <ellipse cx="50" cy="96" rx="20" ry="28" fill="#DCC6A4"/>
+      <path d="M40 84 l4 4 l4 -4 M52 84 l4 4 l4 -4 M38 106 l4 4 l4 -4 M52 106 l4 4 l4 -4 M45 116 l4 4 l4 -4 M44 95 l4 4 l4 -4" stroke="#8A6446" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M19 74 Q14 108 34 122 Q26 100 30 72Z M81 74 Q86 108 66 122 Q74 100 70 72Z" fill="#6E4E36"/>
+      <circle cx="37" cy="56" r="15" fill="#EADBC2"/><circle cx="63" cy="56" r="15" fill="#EADBC2"/>
+      <circle cx="37" cy="56" r="9" fill="#F2B90F"/><circle cx="63" cy="56" r="9" fill="#F2B90F"/>
+      <circle cx="37" cy="56" r="4.6" fill="#1F1A16"/><circle cx="63" cy="56" r="4.6" fill="#1F1A16"/>
+      <path d="M45 66 L55 66 L50 77Z" fill="#B9781F"/>
+      <path d="M38 127 l0 7 M42 127 l0 7 M58 127 l0 7 M62 127 l0 7" stroke="#B9781F" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <header>
+    <div class="brand"><svg class="bolt" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Blitzrechnen</div>
+    <div class="meta" id="meta"></div>
+    <div class="tools">
+      <button class="icon-btn" id="btnSettings" aria-label="Einstellungen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span class="lbl">Einstellungen</span></button>
+      <button class="icon-btn" id="btnSpeak" aria-label="Vorlesen ein- oder ausschalten"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="wave" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="mute" d="M16 9l6 6M22 9l-6 6"/></svg><span class="lbl" id="lblSpeak">Vorlesen an</span></button>
+      <button class="icon-btn" id="btnFull" aria-label="Vollbild"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span class="lbl">Vollbild</span></button>
+    </div>
+  </header>
+
+  <main>
+    <div class="question" id="question" aria-live="polite"></div>
+    <div class="stage" id="stage"></div>
+    <div class="timer" id="timer"><i id="timerBar"></i></div>
+    <div class="answer" id="answer"></div>
+  </main>
+
+  <footer>
+    <button class="big second" id="btnAgain" hidden>Nochmal zeigen</button>
+    <button class="big second hear" id="btnHear" hidden aria-label="Nochmal vorlesen" title="Nochmal vorlesen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="wave" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="mute" d="M16 9l6 6M22 9l-6 6"/></svg><span>Hören</span></button>
+    <button class="big" id="btnMain">Los geht’s</button>
+    <div class="legal"><a href="../">← Alle Apps</a> · <a href="../impressum.html">Impressum</a> · <a href="../datenschutz.html">Datenschutz</a></div>
+  </footer>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-label="Einstellungen">
+  <div class="row" style="justify-content:space-between">
+    <h2>Einstellungen</h2>
+    <button class="icon-btn" id="btnClose">Fertig</button>
+  </div>
+  <div class="group"><span>Spielart</span><div class="seg list" id="setMode"></div></div>
+  <div class="group" id="grpDice"><span>Würfel</span><div class="seg" id="setDiceRows"></div><div class="seg" id="setDiceN"></div>
+    <span class="sublabel" id="lblColor1">Farbe</span><div class="seg" id="setDiceColor"></div>
+    <span class="sublabel" id="lblColor2">Farbe Reihe 2</span><div class="seg" id="setDiceColor2"></div>
+    <span class="sublabel">Summe</span><div class="seg" id="setDiceMax"></div></div>
+  <div class="group"><span>Vorlesen</span><div class="seg" id="setSpeak"></div><div class="seg" id="setRate"></div><p class="small">Liest Fragen (und Antworten) mit der deutschen Stimme des Geräts vor. Mit dem Lautsprecher-Knopf unten lässt sich alles nochmal anhören.</p></div>
+  <div class="group" id="grpField"><span>Feld</span><div class="seg" id="setField"></div><div class="seg list" id="setLayout"></div></div>
+  <div class="group" id="grpAnimal"><span>Bild</span><div class="seg" id="setAnimal"></div></div>
+  <div class="group" id="grpQuestions"><span>Fragen beim Blitzblick</span><div class="seg list" id="setQuestions"></div>
+    <div class="seg" id="setQMode"></div>
+    <p class="small">Tipp: 1–3 Fragen auf einmal sind gut zu schaffen. Bei „eine pro Karte“ wird jedes Mal eine der gewählten Fragen gezogen.</p></div>
+  <div class="group" id="grpChange"><span>Dazu &amp; weg</span><div class="seg" id="setDir"></div><div class="seg" id="setStep"></div><span class="sublabel">Neue markieren mit</span><div class="seg" id="setMark"></div></div>
+  <div class="group"><span>Zeigedauer</span><div class="seg" id="setTime"></div>
+    <p class="small">„Lehrkraft“: Die Karte bleibt sichtbar, bis du auf „Verdecken“ tippst.</p></div>
+  <div class="group" id="grpNums"><span>Zahlen</span><div class="seg nums" id="setNums"></div>
+    <div class="row" id="presets"></div></div>
+</aside>
+
+<script>
+(function(){
+  const ANIMALS={fox:{one:"Fuchs",many:"Füchse"},owl:{one:"Eule",many:"Eulen"},dots:{one:"Punkt",many:"Punkte"},dots2:{one:"Punkt",many:"Punkte"}};
+  const DICE={red:["#D93A3A","#FFFFFF","rot"],blue:["#2F6FB3","#FFFFFF","blau"],green:["#2F8A50","#FFFFFF","grün"],yellow:["#F2C230","#1F1A16","gelb"],white:["#FFFFFF","#1F1A16","weiß"]};
+  const PIPS={1:[4],2:[2,6],3:[2,4,6],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  function dieSVG(v,color){
+    const [bg,pip]=DICE[color]||DICE.red;
+    let h='<svg viewBox="0 0 100 100" aria-label="Würfel '+v+'"><rect x="4" y="4" width="92" height="92" rx="18" fill="'+bg+'" stroke="#1F1A16" stroke-width="4"/>';
+    PIPS[v].forEach(i=>{h+='<circle cx="'+(26+(i%3)*24)+'" cy="'+(26+Math.floor(i/3)*24)+'" r="9" fill="'+pip+'"/>';});
+    return h+"</svg>";
+  }
+  function icon(animal,i,isNew){
+    if(animal==="dots"||animal==="dots2"){
+      let col=animal==="dots2"&&Math.floor(i/5)%2?"var(--dot-b)":"var(--dot-a)";
+      if(isNew)col=animal==="dots2"?"var(--dot-c)":"var(--dot-b)";
+      return '<svg class="dotsvg" aria-hidden="true" style="color:'+col+'"><use href="#dot"/></svg>';
+    }
+    return '<svg aria-hidden="true"><use href="#'+animal+'"/></svg>';
+  }
+  const QUESTIONS=[
+    ["count","Wie viele?"],["free","Wie viele freie Plätze?"],["rows","Wie viele oben, wie viele unten?"],
+    ["more","Mehr oder weniger als 5 (10)?"],["toPivot","Wie viele bis 5 (10) oder über 5 (10)?"],
+    ["neighbors","Nachbarzahlen: davor und danach?"],["double","Wie viele wären es doppelt so viele?"],
+    ["half","Gerecht auf zwei Gruppen verteilen?"],["how","Wie hast du es so schnell gesehen?"]
+  ];
+  const defaults={mode:"flash",field:10,animal:"fox",questions:["count","free","how"],qmode:"all",dir:"both",step:2,time:2,diceN:2,diceRows:1,diceColor:"red",diceColor2:"blue",diceMax:"10",fill20:"l",mark:"color",speak:"all",speakLast:"all",rate:"slow",
+    nums10:[1,2,3,4,5,6,7,8,9,10],nums20:[]};
+  for(let i=5;i<=20;i++)defaults.nums20.push(i);
+  let S=JSON.parse(JSON.stringify(defaults));
+  try{const s=JSON.parse(localStorage.getItem("blitz-settings-2")||"null");if(s&&typeof s==="object")S=Object.assign(S,s);}catch(e){}
+  if(!S.questions||!S.questions.length)S.questions=["count"];
+  const save=()=>{try{localStorage.setItem("blitz-settings-2",JSON.stringify(S))}catch(e){}};
+  const nums=()=>S.field===20?S.nums20:S.nums10;
+
+  const $=id=>document.getElementById(id);
+  const stage=$("stage"),q=$("question"),ans=$("answer"),btn=$("btnMain"),again=$("btnAgain"),timer=$("timer"),bar=$("timerBar"),meta=$("meta");
+  const rnd=a=>a[Math.floor(Math.random()*a.length)];
+  const pickAnimal=()=>S.animal==="mix"?(Math.random()<.5?"fox":"owl"):S.animal;
+  const name=(k,n)=>n===1?ANIMALS[k].one:ANIMALS[k].many;
+
+  // ---------- drawing ----------
+  function cardHTML(st){
+    if(st.kind==="dice")return '<div class="dicebox"><div class="tray">'+st.rows.map(r=>'<div class="drow">'+r.vals.map(v=>dieSVG(v,r.color)).join("")+"</div>").join("")+"</div></div>";
+    const size=st.size,vert=size===20&&S.fill20==="v",cls=size===20?(vert?" f20v":" f20"):"";
+    const total=st.n+(st.added||0);
+    let h='<div class="card'+cls+'">';
+    for(let i=0;i<size;i++){
+      let row,col,gc;
+      if(size===20&&S.fill20==="l"){const blk=Math.floor(i/10),j=i%10;row=Math.floor(j/5);col=j%5+blk*5;gc=col<5?col+1:col+2;}
+      else if(vert){const blk=Math.floor(i/10),j=i%10;row=Math.floor(j/5)+blk*3;col=j%5;gc=col+1;}
+      else if(size===20){row=Math.floor(i/10);col=i%10;gc=col<5?col+1:col+2;}
+      else{row=Math.floor(i/5);col=i%5;gc=col+1;}
+      let c="cell";
+      const isNew=st.added&&i>=st.n&&i<total,markC=S.mark!=="frame";
+      if(isNew)c+=(S.mark!=="color"?" new":"")+(markC&&!st.animal.startsWith("dots")?" newc":"")+(markC&&st.animal.startsWith("dots")?" newd":"");
+      if(st.removed&&i>=st.n-st.removed&&i<st.n)c+=" gone";
+      h+='<div class="'+c+'" style="grid-row:'+(row+1)+';grid-column:'+gc+'">'+(i<total?icon(st.animal,i,isNew&&markC):"")+"</div>";
+    }
+    return h+"</div>";
+  }
+  function show(view){ // view: {cards:[st], covered, coverText, tags}
+    const duo=view.cards.length>1;
+    stage.className="stage"+(duo?" duo":"");
+    stage.innerHTML=view.cards.map((st,i)=>{
+      let f=st.size===20?(S.fill20==="v"?" f20v":" f20"):"",sty="";
+      if(st.kind==="dice"){const r=st.rows.length,pr=st.rows[0].vals.length;f=" dice";sty=' style="--ratio:'+((pr*1.25+.35)/(r*1.15+.25)).toFixed(2)+';--rows:'+r+'"';}
+      return '<div class="wrap'+f+'"'+sty+'>'+(view.tags?'<div class="tag">'+view.tags[i]+'</div>':"")+
+        (view.covered?'<div class="cover"><span>'+(view.coverText??"?")+'</span></div>':cardHTML(st))+"</div>";
+    }).join("");
+  }
+  function setQ(lines,hint){
+    q.className="question"+(lines.length>2?" many":"");
+    q.innerHTML=lines.map(t=>"<span>"+t+"</span>").join("")+(hint?'<span class="hint">'+hint+'</span>':"");
+  }
+  const chip=(t,eq)=>'<span class="chip'+(eq?" eq":"")+'">'+t+"</span>";
+
+  // ---------- math helpers ----------
+  function structure(n,size){
+    if(size===20&&S.fill20==="l"&&n<10)return structure(n,10);
+    const p=size===20?10:5;
+    if(n===0)return "leer";
+    if(n===p)return p===10?"ein voller Zehner = 10":"eine volle Reihe = 5";
+    if(n===size)return p+" + "+p+" = "+size;
+    if(n>p)return p+" + "+(n-p)+" = "+n;
+    return p+" − "+(p-n)+" = "+n;
+  }
+  function qText(key,c){
+    const p=c.size===20?10:5,n=c.n;
+    switch(key){
+      case "count":return "Wie viele "+ANIMALS[c.animal].many+"?";
+      case "free":return "Wie viele freie Plätze?";
+      case "rows":return "Wie viele oben, wie viele unten?";
+      case "more":return "Mehr oder weniger als "+p+"?";
+      case "toPivot":return n>p?"Wie viele sind es über die "+p+"?":"Wie viele fehlen bis "+p+"?";
+      case "neighbors":return "Welche Zahl kommt davor, welche danach?";
+      case "double":return "Wie viele wären es doppelt so viele?";
+      case "half":return "Kannst du sie gerecht auf zwei Gruppen verteilen?";
+      case "how":return "Wie hast du es so schnell gesehen?";
+    }
+  }
+  function aText(key,c){
+    const p=c.size===20?10:5,n=c.n,f=c.size-n,top=(c.size===20&&S.fill20==="l")?Math.min(n,5)+Math.max(0,Math.min(n-10,5)):Math.min(n,c.size/2),bottom=n-top;
+    switch(key){
+      case "count":return chip("<b>"+n+"</b> "+name(c.animal,n));
+      case "free":return chip("<b>"+f+"</b> "+(f===1?"freier Platz":"freie Plätze"))+chip(n+" + "+f+" = "+c.size,true);
+      case "rows":return chip("oben <b>"+top+"</b> · unten <b>"+bottom+"</b>")+(bottom?chip(top+" + "+bottom+" = "+n,true):"");
+      case "more":return chip(n>p?"mehr als "+p:n<p?"weniger als "+p:"genau "+p);
+      case "toPivot":return n>p?chip("<b>"+(n-p)+"</b> über die "+p):chip("<b>"+(p-n)+"</b> fehlen bis "+p);
+      case "neighbors":return chip((n>0?n-1:"–")+" · <b>"+n+"</b> · "+(n+1));
+      case "double":return chip("doppelt: "+n+" + "+n+" = <b>"+(2*n)+"</b>");
+      case "half":return chip(n%2===0?"gerecht: <b>"+(n/2)+"</b> und <b>"+(n/2)+"</b>":"<b>"+((n-1)/2)+"</b> und <b>"+((n-1)/2)+"</b>, 1 bleibt übrig");
+      case "how":return chip(structure(n,c.size),true);
+    }
+  }
+
+  // ---------- card generators ----------
+  let lastDice="",bag=[],round=0,steps=[],idx=0,lastFlash=null,tId=null,anim=null;
+  function fromBag(){
+    const pool=nums();
+    if(!bag.length){bag=pool.slice();for(let i=bag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[bag[i],bag[j]]=[bag[j],bag[i]]}}
+    return bag.pop();
+  }
+  function build(){
+    round++;
+    if(S.mode==="dice"){
+      const R=S.diceRows,P=S.diceN,max=S.diceMax==="all"?999:Number(S.diceMax);
+      let vals,tries=0;
+      do{
+        vals=Array.from({length:R*P},()=>1+Math.floor(Math.random()*6));
+        while(vals.reduce((a,b)=>a+b,0)>max){const big=vals.map((v,i)=>v>1?i:-1).filter(i=>i>=0);if(!big.length)break;vals[rnd(big)]--;}
+        tries++;
+      }while(vals.join()===lastDice&&tries<30);
+      lastDice=vals.join();
+      const rows=[];for(let r=0;r<R;r++)rows.push({vals:vals.slice(r*P,r*P+P),color:r?S.diceColor2:S.diceColor});
+      const st={kind:"dice",rows},sum=vals.reduce((a,b)=>a+b,0);
+      const eq=v=>{const t=v.reduce((a,b)=>a+b,0);return v.length>1?v.join(" + ")+" = <b>"+t+"</b>":"<b>"+t+"</b>";};
+      if(R===1)return[
+        {t:"flash",card:st},
+        {t:"prompt",lines:["Welche Zahlen siehst du?","Wie viele Augen sind es zusammen?"],btn:"Auflösen",coverCard:st},
+        {t:"reveal",cards:[st],lines:["Wie viele Augen sind es zusammen?"],chips:chip(vals.join(" und "))+chip(eq(vals),true)}
+      ];
+      const s1=rows[0].vals.reduce((a,b)=>a+b,0),s2=rows[1].vals.reduce((a,b)=>a+b,0);
+      return[
+        {t:"flash",card:st},
+        {t:"prompt",lines:["Wie viele Augen oben?","Wie viele unten?","Wie viele zusammen?"],btn:"Auflösen",coverCard:st,reserve:420},
+        {t:"reveal",cards:[st],lines:[],reserve:400,chips:'<div class="qa"><div class="qq">oben</div><div class="aa">'+chip(eq(rows[0].vals))+'</div><div class="qq">unten</div><div class="aa">'+chip(eq(rows[1].vals))+'</div><div class="qq">zusammen</div><div class="aa">'+chip(s1+" + "+s2+" = <b>"+sum+"</b>",true)+"</div></div>"}
+      ];
+    }
+    const size=S.field,n=fromBag(),animal=pickAnimal(),c={size,n,animal};
+    if(S.mode==="flash"){
+      let keys=QUESTIONS.map(x=>x[0]).filter(k=>S.questions.includes(k));
+      if(S.qmode==="one")keys=[rnd(keys)];
+      return[
+        {t:"flash",card:c},
+        {t:"prompt",lines:keys.map(k=>qText(k,c)),btn:"Auflösen",reserve:keys.length>2?300+keys.length*42:400},
+        keys.length>1
+          ?{t:"reveal",cards:[c],lines:[],chips:'<div class="qa">'+keys.map(k=>'<div class="qq">'+qText(k,c)+'</div><div class="aa">'+aText(k,c)+"</div>").join("")+"</div>",reserve:260+keys.length*46}
+          :{t:"reveal",cards:[c],lines:keys.map(k=>qText(k,c)),chips:keys.map(k=>aText(k,c)).join("")}
+      ];
+    }
+    if(S.mode==="change"){
+      let dir=S.dir==="both"?(Math.random()<.5?"in":"out"):S.dir;
+      let k=1+Math.floor(Math.random()*S.step);
+      if(dir==="out"&&n===0)dir="in";
+      if(dir==="in"&&n===size)dir="out";
+      k=dir==="in"?Math.min(k,size-n):Math.min(k,n);
+      const res=dir==="in"?n+k:n-k;
+      let icons="";for(let j=0;j<k;j++)icons+=(animal.startsWith("dots")?'<svg aria-hidden="true" style="width:clamp(28px,3vw,48px);height:clamp(28px,3vw,48px);color:'+(dir==="in"&&S.mark!=="frame"?(animal==="dots2"?"var(--dot-c)":"var(--dot-b)"):"var(--dot-a)")+'"><use href="#dot"/></svg>':icon(animal,j));
+      const say=dir==="in"?k+" "+name(animal,k)+" "+(k===1?"kommt":"kommen")+" dazu!":k+" "+name(animal,k)+" "+(animal.startsWith("dots")?(k===1?"verschwindet":"verschwinden"):(k===1?"läuft weg":"laufen weg"))+"!";
+      const after={size,n,animal,added:dir==="in"?k:0,removed:dir==="out"?k:0};
+      return[
+        {t:"flash",card:c},
+        {t:"prompt",lines:[say,"Wie viele sind es jetzt?"],extra:'<div class="strip'+(dir==="out"?" out":"")+'">'+(dir==="in"?"+ ":"− ")+icons+"</div>",btn:"Auflösen"},
+        {t:"reveal",cards:[after],lines:[say],chips:chip(n+(dir==="in"?" + ":" − ")+k+" = <b>"+res+"</b>",true)+chip("jetzt <b>"+res+"</b> "+name(animal,res))}
+      ];
+    }
+    if(S.mode==="compare"){
+      const pool=nums().filter(x=>x!==n),m=pool.length?rnd(pool):n;
+      const a2=S.animal==="mix"?(animal==="fox"?"owl":"fox"):animal;
+      const c2={size,n:m,animal:a2},diff=Math.abs(n-m);
+      const verdict=n===m?"gleich viele":"Karte "+(n>m?1:2)+" hat <b>"+diff+"</b> mehr";
+      return[
+        {t:"flash",card:c,label:"Karte 1"},
+        {t:"prompt",lines:["Merk dir die Zahl!"],hint:"Gleich kommt Karte 2.",btn:"Karte 2 zeigen",cover:"1"},
+        {t:"flash",card:c2,label:"Karte 2"},
+        {t:"prompt",lines:["Auf welcher Karte waren mehr?","Wie viele mehr?"],btn:"Auflösen",cover:"?"},
+        {t:"reveal",cards:[c,c2],tags:["Karte 1","Karte 2"],lines:["Auf welcher Karte waren mehr?"],
+          chips:chip("Karte 1: <b>"+n+"</b>")+chip("Karte 2: <b>"+m+"</b>")+chip(verdict,true)}
+      ];
+    }
+    // reverse
+    return[
+      {t:"prompt",lines:["Zeig mir "+n+"!"],hint:"Mit den Fingern oder im eigenen "+(size===20?"Zwanzigerfeld":"Zehnerfeld")+".",btn:"Auflösen",cover:String(n),noAgain:true},
+      {t:"reveal",cards:[c],lines:["So sieht "+n+" aus:"],chips:chip("<b>"+n+"</b> "+name(animal,n))+chip(structure(n,size),true)}
+    ];
+  }
+
+  // ---------- speech ----------
+  const synth=window.speechSynthesis;let lastSpoken="",voice=null;
+  function pickVoice(){if(!synth)return;const vs=synth.getVoices().filter(v=>/^de/i.test(v.lang));voice=vs.find(v=>/de-DE/i.test(v.lang)&&v.localService)||vs.find(v=>/de-DE/i.test(v.lang))||vs[0]||null;}
+  if(synth){pickVoice();synth.onvoiceschanged=pickVoice;}
+  function clean(t){return t.replace(/<[^>]+>/g," ").replace(/\s*\+\s*/g," plus ").replace(/\s*[−-]\s*(?=\d)/g," minus ").replace(/\s*=\s*/g," gleich ").replace(/·/g,", ").replace(/–/g,"").replace(/([?!.])\s*\./g,"$1").replace(/(\d)\s*\.(?!\d)/g,"$1,").replace(/\s+/g," ").replace(/,\s*$/,"").trim();}
+  function say(text,force){
+    lastSpoken=text;
+    if(!synth||(!force&&S.speak==="off"))return;
+    synth.cancel();
+    if(!text)return;
+    const u=new SpeechSynthesisUtterance(clean(text));u.lang="de-DE";if(voice)u.voice=voice;u.rate=S.rate==="slow"?.8:.95;
+    synth.speak(u);
+  }
+  function hush(){lastSpoken="";if(synth)synth.cancel();}
+  function updHear(){$("btnHear").hidden=!synth||!lastSpoken;
+    $("btnSpeak").classList.toggle("off",S.speak==="off");$("lblSpeak").textContent=S.speak==="off"?"Vorlesen aus":"Vorlesen an";}
+  function answerText(){
+    const qa=ans.querySelector(".qa");
+    if(qa){const k=[...qa.children];let t="";for(let i=0;i<k.length;i+=2)t+=k[i].textContent+" "+[...k[i+1].querySelectorAll(".chip")].map(c=>c.textContent).join(", ")+". ";return t;}
+    return [...ans.querySelectorAll(".chip")].map(c=>c.textContent).join(". ");
+  }
+
+  // ---------- step engine ----------
+  function stopTimer(){clearTimeout(tId);tId=null;if(anim){anim.cancel();anim=null}timer.classList.remove("on")}
+  function runFlash(card,label,then){
+    stopTimer();document.querySelector("main").style.setProperty("--reserve","400px");ans.innerHTML="";again.hidden=true;
+    show({cards:[card]});setQ([label||""]);hush();updHear();
+    btn.textContent="Verdecken";
+    if(S.time!=="manual"){
+      const ms=S.time*1000;timer.classList.add("on");
+      if(bar.animate&&!matchMedia("(prefers-reduced-motion: reduce)").matches)anim=bar.animate([{transform:"scaleX(1)"},{transform:"scaleX(0)"}],{duration:ms,easing:"linear",fill:"forwards"});
+      tId=setTimeout(then,ms);
+    }
+    pending=then;
+  }
+  let pending=null;
+  function run(){
+    stopTimer();pending=null;
+    const s=steps[idx];
+    meta.textContent=round?("Karte "+round):"";
+    if(s.t==="flash"){lastFlash=s;runFlash(s.card,s.label,()=>{idx++;run();});return;}
+    ans.innerHTML="";
+    document.querySelector("main").style.setProperty("--reserve",(s.reserve||400)+"px");
+    if(s.t==="prompt"){
+      show({cards:[s.coverCard||{size:S.field}],covered:true,coverText:s.cover});
+      setQ(s.lines,s.hint);if(s.extra)ans.innerHTML=s.extra;
+      btn.textContent=s.btn;again.hidden=!!s.noAgain||!lastFlash;
+      say(s.lines.join(". ")+(s.hint?". "+s.hint:""));updHear();
+    }else{
+      show({cards:s.cards,tags:s.tags});setQ(s.lines);ans.innerHTML=s.chips;
+      btn.textContent="Nächste Karte";again.hidden=true;
+      if(S.speak==="all")say(answerText());else{if(synth)synth.cancel();lastSpoken=answerText();}updHear();
+    }
+  }
+  function next(){
+    if(pending){const f=pending;f();return;}
+    if(!steps.length||idx>=steps.length-1){steps=build();idx=0;lastFlash=null;}
+    else idx++;
+    run();
+  }
+  function intro(){
+    hush();setTimeout(updHear);
+    steps=[];idx=0;lastFlash=null;round=0;stopTimer();pending=null;
+    const label={flash:"Blitzblick",change:"Dazu & weg",compare:"Vergleichen",reverse:"Rückwärts",dice:"Würfel"}[S.mode];
+    document.querySelector("main").style.setProperty("--reserve","400px");
+    const dice=S.mode==="dice";
+    show({cards:[dice?{kind:"dice",rows:Array.from({length:S.diceRows},()=>({vals:Array(S.diceN).fill(1),color:S.diceColor}))}:{size:S.field}],covered:true});
+    setQ(["Schau genau hin!"],label+" · "+(dice?(S.diceRows*S.diceN)+" Würfel":S.field===20?"Zwanzigerfeld":"Zehnerfeld"));
+    ans.innerHTML="";again.hidden=true;meta.textContent="";btn.textContent="Los geht’s";
+  }
+  $("btnHear").addEventListener("click",()=>say(lastSpoken,true));
+  q.addEventListener("click",()=>{if(lastSpoken)say(lastSpoken,true);});
+  $("btnSpeak").addEventListener("click",()=>{
+    if(S.speak==="off"){S.speak=S.speakLast||"all";}else{S.speakLast=S.speak;S.speak="off";hush();}
+    save();updHear();
+  });
+  let wake=null;
+  btn.addEventListener("click",()=>{next();if(!wake&&navigator.wakeLock)navigator.wakeLock.request("screen").then(w=>wake=w).catch(()=>{});});
+  again.addEventListener("click",()=>{if(!lastFlash)return;const back=idx;runFlash(lastFlash.card,lastFlash.label,()=>{idx=back;run();});});
+  document.addEventListener("keydown",e=>{
+    if(!$("drawer").hidden){if(e.key==="Escape")closeS();return}
+    if(e.key===" "||e.key==="ArrowRight"||e.key==="Enter"){e.preventDefault();next();}
+  });
+  $("btnFull").addEventListener("click",()=>{
+    const d=document,el=d.documentElement;
+    try{
+      if(d.fullscreenElement||d.webkitFullscreenElement){(d.exitFullscreen||d.webkitExitFullscreen).call(d);}
+      else if(el.requestFullscreen){el.requestFullscreen().catch(()=>{});}
+      else if(el.webkitRequestFullscreen){el.webkitRequestFullscreen();}
+    }catch(e){}
+  });
+
+  // ---------- settings ----------
+  const single={
+    setMode:["mode",[["flash","<b>Blitzblick</b> – Karte zeigen, Fragen stellen"],["change","<b>Dazu &amp; weg</b> – es kommen welche dazu oder gehen weg"],["compare","<b>Vergleichen</b> – zwei Karten nacheinander"],["reverse","<b>Rückwärts</b> – Zahl nennen, Kinder zeigen sie"],["dice","<b>Würfel</b> – bis zu 6 Würfel in 1 oder 2 Reihen"]]],
+    setField:["field",[[10,"Zehnerfeld"],[20,"Zwanzigerfeld"]]],
+    setAnimal:["animal",[["fox",'<svg><use href="#fox"/></svg>Fuchs'],["owl",'<svg><use href="#owl"/></svg>Eule'],["mix","Fuchs &amp; Eule"],["dots",'<svg style="width:22px;height:22px;color:var(--dot-a)"><use href="#dot"/></svg>Punkte'],["dots2",'<svg style="width:22px;height:22px;color:var(--dot-a)"><use href="#dot"/></svg><svg style="width:22px;height:22px;color:var(--dot-b)"><use href="#dot"/></svg>Punkte 5er-farbig']]],
+    setDiceRows:["diceRows",[[1,"1 Reihe"],[2,"2 Reihen"]]],
+    setDiceN:["diceN",[[1,"1 pro Reihe"],[2,"2 pro Reihe"],[3,"3 pro Reihe"]]],
+    setDiceColor:["diceColor",Object.keys(DICE).map(k=>[k,'<span class="swatch" style="background:'+DICE[k][0]+'"></span>'+DICE[k][2]])],
+    setDiceColor2:["diceColor2",Object.keys(DICE).map(k=>[k,'<span class="swatch" style="background:'+DICE[k][0]+'"></span>'+DICE[k][2]])],
+    setDiceMax:["diceMax",[["10","Summe bis 10"],["20","bis 20"],["all","beliebig"]]],
+    setLayout:["fill20",[["l","Linkes Zehnerfeld zuerst (5 unter 5)"],["h","Obere Reihe zuerst (10 waagerecht)"],["v","2 Zehnerfelder übereinander"]]],
+    setSpeak:["speak",[["off","aus"],["q","nur Fragen"],["all","Fragen und Antworten"]]],
+    setRate:["rate",[["slow","langsam"],["normal","normal"]]],
+    setMark:["mark",[["color","andere Farbe"],["frame","blauer Rahmen"],["both","beides"]]],
+    setQMode:["qmode",[["all","alle auf einmal"],["one","eine pro Karte"]]],
+    setDir:["dir",[["in","nur dazu"],["out","nur weg"],["both","beides"]]],
+    setStep:["step",[[1,"1 Tier"],[2,"1–2 Tiere"],[3,"1–3 Tiere"]]],
+    setTime:["time",[[1,"1 s"],[2,"2 s"],[3,"3 s"],[5,"5 s"],["manual","Lehrkraft"]]]
+  };
+  function buildSettings(){
+    for(const id in single){
+      const [key,opts]=single[id],box=$(id);box.innerHTML="";
+      opts.forEach(([v,label])=>{
+        const b=document.createElement("button");b.type="button";b.innerHTML=label;b.setAttribute("aria-pressed",String(S[key]===v));
+        b.addEventListener("click",()=>{S[key]=v;if(key==="field")bag=[];save();buildSettings();});box.appendChild(b);
+      });
+    }
+    const qb=$("setQuestions");qb.innerHTML="";
+    QUESTIONS.forEach(([k,label])=>{
+      const on=S.questions.includes(k),b=document.createElement("button");b.type="button";
+      b.innerHTML=(on?"✓ ":"")+label;b.setAttribute("aria-pressed",String(on));
+      b.addEventListener("click",()=>{
+        if(on&&S.questions.length===1)return;
+        S.questions=on?S.questions.filter(x=>x!==k):S.questions.concat(k);save();buildSettings();
+      });qb.appendChild(b);
+    });
+    $("grpQuestions").hidden=S.mode!=="flash";
+    $("grpChange").hidden=S.mode!=="change";
+    const dm=S.mode==="dice";$("grpDice").hidden=!dm;$("grpField").hidden=dm;$("grpAnimal").hidden=dm;$("grpNums").hidden=dm;
+    $("setLayout").hidden=S.field!==20;$("setDiceColor2").hidden=$("lblColor2").hidden=S.diceRows!==2;$("lblColor1").textContent=S.diceRows===2?"Farbe Reihe 1":"Farbe";
+    const key=S.field===20?"nums20":"nums10",nb=$("setNums");nb.innerHTML="";
+    for(let i=0;i<=S.field;i++){
+      const b=document.createElement("button");b.type="button";b.textContent=i;b.setAttribute("aria-pressed",String(S[key].includes(i)));
+      b.addEventListener("click",()=>{
+        const has=S[key].includes(i);if(has&&S[key].length===1)return;
+        S[key]=has?S[key].filter(x=>x!==i):S[key].concat(i).sort((a,b)=>a-b);bag=[];save();buildSettings();
+      });nb.appendChild(b);
+    }
+    const pr=$("presets");pr.innerHTML="";
+    (S.field===20?[[0,10],[10,20],[0,20]]:[[1,5],[5,10],[0,10]]).forEach(([a,z])=>{
+      const b=document.createElement("button");b.className="link";b.type="button";b.textContent=a+"–"+z;
+      b.addEventListener("click",()=>{S[key]=[];for(let i=a;i<=z;i++)S[key].push(i);bag=[];save();buildSettings();});pr.appendChild(b);
+    });
+  }
+  let before="";
+  function openS(){stopTimer();pending=null;before=JSON.stringify([S.mode,S.field,S.diceN,S.diceRows,S.fill20]);buildSettings();$("drawer").hidden=false;$("scrim").hidden=false;$("btnClose").focus();}
+  function closeS(){
+    $("drawer").hidden=true;$("scrim").hidden=true;
+    if(before!==JSON.stringify([S.mode,S.field,S.diceN,S.diceRows,S.fill20])||steps.length)intro();
+    btn.focus();
+  }
+  $("btnSettings").addEventListener("click",openS);$("btnClose").addEventListener("click",closeS);$("scrim").addEventListener("click",closeS);
+
+  intro();
+})();
+</script>
+
+</body>
+</html>
