@@ -16,9 +16,10 @@
 @font-face{font-family:'Andika';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/andika-400.woff2) format('woff2')}
 @font-face{font-family:'Andika';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/andika-700.woff2) format('woff2')}
 :root{
+  /* Farbcode wie im Schulbuch: --blue = linker Teil (rot), --red = rechter Teil (blau) */
   color-scheme: light;
   --bg:#EDF2F8; --paper:#FFFFFF; --ink:#1E2B45; --muted:#5B6782;
-  --blue:#2F6FDB; --blue-t:#E2EBFB; --red:#D6453B; --red-t:#FBE3E0;
+  --blue:#D6453B; --blue-t:#FBE3E0; --red:#2F6FDB; --red-t:#E2EBFB;
   --ball:#F2B33D; --ball-hi:#FFE6A3; --ball-edge:#B97E10;
   --box:#8597B6; --boxfill:rgba(255,255,255,.65); --lid:#6F82A3; --lid2:#7D90B0;
   --roof:#3D5A8C; --line:#C8D2E2; --ok:#24875A; --sel:#FFF1C9; --onink:#FFFFFF;
@@ -30,7 +31,7 @@
   :root:not([data-theme="light"]){
     color-scheme: dark;
     --bg:#131A29; --paper:#1D2637; --ink:#EAF0FA; --muted:#A5B1C8;
-    --blue:#77A3F2; --blue-t:#203250; --red:#F0837A; --red-t:#43272A;
+    --blue:#F0837A; --blue-t:#43272A; --red:#77A3F2; --red-t:#203250;
     --ball:#F2B33D; --ball-hi:#FFE2A0; --ball-edge:#9C6A0C;
     --box:#6C7C99; --boxfill:rgba(255,255,255,.04); --lid:#4D5D7A; --lid2:#566785;
     --roof:#5A79B0; --line:#33405A; --ok:#3FAE74; --sel:#463A18; --onink:#131A29;
@@ -39,7 +40,7 @@
 :root[data-theme="dark"]{
   color-scheme: dark;
   --bg:#131A29; --paper:#1D2637; --ink:#EAF0FA; --muted:#A5B1C8;
-  --blue:#77A3F2; --blue-t:#203250; --red:#F0837A; --red-t:#43272A;
+  --blue:#F0837A; --blue-t:#43272A; --red:#77A3F2; --red-t:#203250;
   --ball:#F2B33D; --ball-hi:#FFE2A0; --ball-edge:#9C6A0C;
   --box:#6C7C99; --boxfill:rgba(255,255,255,.04); --lid:#4D5D7A; --lid2:#566785;
   --roof:#5A79B0; --line:#33405A; --ok:#3FAE74; --sel:#463A18; --onink:#131A29;
@@ -548,7 +549,7 @@ function chamberRound(v){
   hid=usePlates()?NONE():{left:false,right:true}; phase=S.partner?'answer':'shake';
   pending={a:v,b:S.n-v,need:{a:false,b:true},val:{a:'',b:''},active:'b'};
   hideLinks(); renderAll(true);
-  setMsg(usePlates()?`${v} Plättchen sind blau. Wie viele sind rot?`:`Links liegen ${v}. Wie viele fehlen bis ${S.n}?`,true,'hidden');
+  setMsg(usePlates()?`${v} Plättchen sind rot. Wie viele sind blau?`:`Links liegen ${v}. Wie viele fehlen bis ${S.n}?`,true,'hidden');
 }
 function key(k){
   if(!pending) return;
@@ -781,7 +782,7 @@ function forgotFlow(){
 
 /* ---------- Einstellungen ---------- */
 const SEGS=[
-  ['material','Material',[['box','Schüttelbox'],['plates','Wendeplättchen'],['dice','Würfel']],'Wendeplättchen: Blau zählt links, Rot rechts, ohne Deckel. Würfel: In jeder Kammer liegt ein Würfel. Es gibt nur Zerlegungen mit 1 bis 6 Augen, also Dachzahlen von 2 bis 12.'],
+  ['material','Material',[['box','Schüttelbox'],['plates','Wendeplättchen'],['dice','Würfel']],'Wendeplättchen: Rot zählt links, Blau rechts, ohne Deckel. Würfel: In jeder Kammer liegt ein Würfel. Es gibt nur Zerlegungen mit 1 bis 6 Augen, also Dachzahlen von 2 bis 12.'],
   ['hide','Kammern',[['none','Beide offen'],['left','Links zu'],['right','Rechts zu'],['both','Beide zu'],['random','Zufällig eine zu']]],
   ['mode','Ins Haus eintragen',[['auto','Automatisch'],['self','Kinder tragen ein']],'Bei verdeckter Kammer tragen die Kinder die versteckte Zahl immer selbst ein.'],
   ['eq','Plusaufgabe',[['button','Auf Knopfdruck'],['always','Immer'],['off','Aus']]],
