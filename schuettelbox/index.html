@@ -85,6 +85,10 @@ a.tool{color:inherit;text-decoration:none}
 .panel input[type=text]{font:inherit;width:100%;padding:6px 10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
 .names{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
 .hint{font-size:.85rem;color:var(--muted);margin:6px 0 0}
+.linknote{background:var(--sel);border-radius:10px;padding:8px 12px;margin:12px 0 0;font-size:.9rem}
+.linknote a{color:inherit}
+.linkrow{display:flex;flex-wrap:wrap;gap:8px}
+.linkout{display:block;width:100%;margin-top:8px;font:inherit;font-size:.8rem;padding:8px 10px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink)}
 .panel .done{margin-top:18px;width:100%;justify-content:center;font-weight:700}
 .vrow{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--line)}
 .vrow span{font-size:.9rem;flex:1}
@@ -313,7 +317,40 @@ const KEY='schuettelbox-v2', VKEY='schuettelbox-voice';
 const DEF={zr:10,n:7,hide:'none',mode:'auto',rand:'real',eq:'button',tags:false,house:true,links:true,sorted:false,empty:true,pattern:false,sound:true,speak:false,boxnum:true,material:'box',diceTarget:'roof',partner:false,names:['Kind 1','Kind 2'],kid:false,code:''};
 let S={...DEF};
 try{const v=JSON.parse(localStorage.getItem(KEY)||'null'); if(v) S={...DEF,...v};}catch(e){}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function save(){ if(LINK) return; try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
+
+/* ---------- Einstellungen per Link ----------
+   z. B. ?zahl=7&material=plaettchen&haus=1 – gilt nur für diese Sitzung, wird nicht gespeichert.
+   Namen und Lehrkraft-Code kommen nie in den Link. */
+const B01=[['1',true],['0',false]];
+const LP=[
+  ['zr','zr',[['10',10],['20',20],['100',100]]],
+  ['material','material',[['box','box'],['plaettchen','plates'],['wuerfel','dice']]],
+  ['kammern','hide',[['offen','none'],['links','left'],['rechts','right'],['beide','both'],['zufall','random']]],
+  ['eintragen','mode',[['auto','auto'],['kinder','self']]],
+  ['plus','eq',[['knopf','button'],['immer','always'],['aus','off']]],
+  ['wuerfel','diceTarget',[['dach','roof'],['kammer','chamber']]],
+  ['kugeln','rand',[['echt','real'],['gleich','uniform']]],
+  ['boxzahl','boxnum',B01],['haus','house',B01],['ordnen','sorted',B01],['leer','empty',B01],['muster','pattern',B01],
+  ['anzahl','tags',B01],['linien','links',B01],['ton','sound',B01],['vorlesen','speak',B01],['partner','partner',B01],['kinder','kid',B01]
+];
+const LALIAS={n:'zahl',mat:'material'};
+const LINK=(()=>{
+  let q; try{ q=new URLSearchParams(location.search); }catch(e){ return false; }
+  const get=k=>{ if(q.has(k)) return q.get(k); for(const a in LALIAS) if(LALIAS[a]===k&&q.has(a)) return q.get(a); return null; };
+  if(!LP.some(([p])=>get(p)!==null)&&get('zahl')===null) return false;
+  S={...DEF,names:[...DEF.names],mig3:true};
+  LP.forEach(([p,k,opts])=>{ const v=get(p); if(v===null) return; const m=opts.find(o=>o[0]===v.trim().toLowerCase()); if(m) S[k]=m[1]; });
+  const n=parseInt(get('zahl'),10); if(n>0) S.n=n;
+  if(S.pattern) S.sorted=true;
+  return true;
+})();
+function linkURL(kid){
+  const parts=['zahl='+S.n];
+  LP.forEach(([p,k,opts])=>{ if(k==='kid') return; if(S[k]!==DEF[k]){ const m=opts.find(o=>o[1]===S[k]); if(m) parts.push(p+'='+m[0]); } });
+  if(kid) parts.push('kinder=1');
+  return location.origin+location.pathname+'?'+parts.join('&');
+}
 if(!S.mig3){ S.sorted=false; S.pattern=false; S.mig3=true; save(); }
 let voices={}; try{voices=JSON.parse(localStorage.getItem(VKEY)||'{}')||{};}catch(e){}
 
@@ -773,6 +810,7 @@ function closeDlg(){ $('#dlg').hidden=true; dlgOk=null; }
 function submitDlg(){ if(!dlgOk) return; const err=dlgOk($('#dlgIn').value.trim()); if(err) $('#dlgE').textContent=err; else closeDlg(); }
 function setKid(on){ S.kid=on; save(); $('#settings').open=false; renderZR(); }
 function unlockFlow(){
+  if(!S.code){ forgotFlow(); return; }
   askCode('Lehrkraft-Ansicht','Gib den Code ein.',v=>v===S.code?(setKid(false),null):'Der Code stimmt nicht.',true);
 }
 function forgotFlow(){
@@ -794,6 +832,7 @@ function h2(p,t){ const h=document.createElement('h2'); h.textContent=t; p.appen
 function hint(p,t){ const e=document.createElement('p'); e.className='hint'; e.textContent=t; p.appendChild(e); }
 function renderPanel(){
   const p=$('#panel'); const st=p.scrollTop; p.innerHTML='';
+  if(LINK){ const n=document.createElement('p'); n.className='linknote'; n.innerHTML='Diese Einstellungen kommen aus einem Link und werden nicht gespeichert. <a href="./">Eigene Einstellungen öffnen</a>'; p.appendChild(n); }
   SEGS.forEach(([k,label,opts,h])=>{
     h2(p,label);
     const seg=document.createElement('div'); seg.className='seg'; seg.setAttribute('role','group'); seg.setAttribute('aria-label',label);
@@ -830,6 +869,23 @@ function renderPanel(){
   h2(p,'Gerät schütteln');
   const mb=document.createElement('button'); mb.type='button'; mb.className='tool'; mb.textContent=motionOn?'Bewegungssensor ausschalten':'Bewegungssensor einschalten'; mb.onclick=toggleMotion; p.appendChild(mb);
   hint(p,'Auf iPad und Handy einmal einschalten und erlauben. Tastatur: S = schütteln, W = würfeln.');
+  h2(p,'Link für diese Einstellung');
+  const lr=document.createElement('div'); lr.className='linkrow';
+  const lk=document.createElement('label'); const lc=document.createElement('input'); lc.type='checkbox'; lk.append(lc,'Link öffnet die Kinder-Ansicht');
+  const out=document.createElement('input'); out.className='linkout'; out.readOnly=true; out.hidden=true; out.setAttribute('aria-label','Link');
+  const cb=document.createElement('button'); cb.type='button'; cb.className='tool'; cb.textContent='Link kopieren';
+  cb.onclick=async()=>{
+    const u=linkURL(lc.checked); out.value=u; out.hidden=false; let ok=false;
+    try{ await navigator.clipboard.writeText(u); ok=true; }catch(e){}
+    if(!ok){ try{ out.focus(); out.select(); ok=document.execCommand('copy'); }catch(e){} }
+    cb.textContent=ok?'✓ Kopiert':'Link unten kopieren'; setTimeout(()=>{ cb.textContent='Link kopieren'; },2500);
+  };
+  lr.appendChild(cb);
+  if(navigator.share){ const sb=document.createElement('button'); sb.type='button'; sb.className='tool'; sb.textContent='Teilen';
+    sb.onclick=()=>{ try{ navigator.share({title:'Schüttelbox und Zahlenhaus',url:linkURL(lc.checked)}).catch(()=>{}); }catch(e){} }; lr.appendChild(sb); }
+  lc.onchange=()=>{ out.hidden=true; };
+  p.append(lr,lk,out);
+  hint(p,'Mit dem Link öffnet sich die Schüttelbox genau so, z. B. für ein Kind oder eine Gruppe. Auf dem Gerät wird dabei nichts gespeichert. Namen und Code kommen nicht in den Link. Kinder-Ansicht aus dem Link beendest du über „🔒 Lehrkraft“ mit einer Rechenfrage.');
   h2(p,'Kinder-Ansicht');
   const kb=document.createElement('button'); kb.type='button'; kb.className='tool'; kb.textContent='Kinder-Ansicht einschalten';
   kb.onclick=()=>askCode('Kinder-Ansicht','Lege einen Code mit 4 Ziffern fest. Damit kommst du über „🔒 Lehrkraft“ zurück.',v=>{ if(!/^\d{4}$/.test(v)) return 'Bitte genau 4 Ziffern eingeben.'; S.code=v; setKid(true); return null; },false);

@@ -133,6 +133,9 @@ footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
 .seg.list button{width:100%;display:block}
 .nums button{min-width:46px;justify-content:center;font-variant-numeric:tabular-nums}
 .small{font-size:14px;color:var(--muted);margin:0}
+.linknote{background:var(--new-bg);border-radius:10px;padding:8px 12px;margin:0;font-size:15px}
+.linknote a{color:inherit}
+.linkout{width:100%;box-sizing:border-box;font:14px var(--font-read);padding:8px 10px;border-radius:10px;border:2px solid var(--soft);background:var(--board);color:var(--ink)}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .link{font:600 15px var(--font-num);background:none;border:none;color:var(--go);cursor:pointer;padding:4px 0;text-decoration:underline}
 @media (prefers-reduced-motion:reduce){.cell.new svg,.cell.newc svg{animation:none}}
@@ -229,6 +232,7 @@ footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
     <h2>Einstellungen</h2>
     <button class="icon-btn" id="btnClose">Fertig</button>
   </div>
+  <p class="linknote" id="linkNote" hidden>Diese Einstellungen kommen aus einem Link und werden nicht gespeichert. <a href="./">Eigene Einstellungen öffnen</a></p>
   <div class="group"><span>Spielart</span><div class="seg list" id="setMode"></div></div>
   <div class="group" id="grpDice"><span>Würfel</span><div class="seg" id="setDiceRows"></div><div class="seg" id="setDiceN"></div>
     <span class="sublabel" id="lblColor1">Farbe</span><div class="seg" id="setDiceColor"></div>
@@ -245,6 +249,10 @@ footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
     <p class="small">„Lehrkraft“: Die Karte bleibt sichtbar, bis du auf „Verdecken“ tippst.</p></div>
   <div class="group" id="grpNums"><span>Zahlen</span><div class="seg nums" id="setNums"></div>
     <div class="row" id="presets"></div></div>
+  <div class="group"><span>Link für diese Einstellung</span>
+    <div class="row"><button class="icon-btn" id="btnCopyLink" type="button">Link kopieren</button><button class="icon-btn" id="btnShareLink" type="button" hidden>Teilen</button></div>
+    <input class="linkout" id="linkOut" readonly hidden aria-label="Link">
+    <p class="small">Mit dem Link öffnet sich Blitzrechnen genau so, z. B. für ein Kind oder eine Gruppe. Auf dem Gerät wird dabei nichts gespeichert.</p></div>
 </aside>
 
 <script>
@@ -278,7 +286,47 @@ footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
   let S=JSON.parse(JSON.stringify(defaults));
   try{const s=JSON.parse(localStorage.getItem("blitz-settings-2")||"null");if(s&&typeof s==="object")S=Object.assign(S,s);}catch(e){}
   if(!S.questions||!S.questions.length)S.questions=["count"];
-  const save=()=>{try{localStorage.setItem("blitz-settings-2",JSON.stringify(S))}catch(e){}};
+  // ---------- Einstellungen per Link ----------
+  // z. B. ?spiel=blitz&feld=20&blitz=2&fragen=wieviele,frei – gilt nur für diese Sitzung, wird nicht gespeichert.
+  const COL=[["rot","red"],["blau","blue"],["gruen","green"],["gelb","yellow"],["weiss","white"]];
+  const LP=[
+    ["spiel","mode",[["blitz","flash"],["dazuweg","change"],["vergleichen","compare"],["rueckwaerts","reverse"],["wuerfel","dice"]]],
+    ["feld","field",[["10",10],["20",20]]],
+    ["anordnung","fill20",[["links","l"],["oben","h"],["untereinander","v"]]],
+    ["bild","animal",[["fuchs","fox"],["eule","owl"],["mix","mix"],["punkte","dots"],["punkte5","dots2"]]],
+    ["fragemodus","qmode",[["alle","all"],["eine","one"]]],
+    ["richtung","dir",[["dazu","in"],["weg","out"],["beides","both"]]],
+    ["schritt","step",[["1",1],["2",2],["3",3]]],
+    ["neu","mark",[["farbe","color"],["rahmen","frame"],["beides","both"]]],
+    ["blitz","time",[["1",1],["2",2],["3",3],["5",5],["lehrkraft","manual"]]],
+    ["wuerfel","diceN",[["1",1],["2",2],["3",3]]],
+    ["reihen","diceRows",[["1",1],["2",2]]],
+    ["farbe","diceColor",COL],["farbe2","diceColor2",COL],
+    ["summe","diceMax",[["10","10"],["20","20"],["alle","all"]]],
+    ["vorlesen","speak",[["aus","off"],["fragen","q"],["alle","all"]]],
+    ["tempo","rate",[["langsam","slow"],["normal","normal"]]]
+  ];
+  const QP=[["wieviele","count"],["frei","free"],["obenunten","rows"],["mehr","more"],["bis","toPivot"],["nachbarn","neighbors"],["doppelt","double"],["haelfte","half"],["wie","how"]];
+  const numList=t=>{const out=[];String(t).split(",").forEach(x=>{const m=x.trim().match(/^(\d+)(?:-(\d+))?$/);if(!m)return;const a=+m[1],z=m[2]===undefined?a:+m[2];for(let i=Math.min(a,z);i<=Math.max(a,z)&&i<=20;i++)if(!out.includes(i))out.push(i);});return out.sort((a,b)=>a-b);};
+  const numText=l=>{const r=[];for(let i=0;i<l.length;i++){let j=i;while(j+1<l.length&&l[j+1]===l[j]+1)j++;r.push(j>i?l[i]+"-"+l[j]:String(l[i]));i=j;}return r.join(",");};
+  const LINK=(()=>{
+    let q;try{q=new URLSearchParams(location.search);}catch(e){return false;}
+    if(q.has("frage")&&!q.has("fragen"))q.set("fragen",q.get("frage"));
+    if(!LP.some(([p])=>q.has(p))&&!q.has("fragen")&&!q.has("zahlen"))return false;
+    S=JSON.parse(JSON.stringify(defaults));
+    LP.forEach(([p,k,o])=>{if(!q.has(p))return;const m=o.find(x=>x[0]===q.get(p).trim().toLowerCase());if(m)S[k]=m[1];});
+    if(q.has("fragen")){const l=q.get("fragen").split(",").map(x=>(QP.find(y=>y[0]===x.trim().toLowerCase())||[])[1]).filter(Boolean);if(l.length)S.questions=[...new Set(l)];}
+    if(q.has("zahlen")){const l=numList(q.get("zahlen")).filter(i=>i<=S.field);if(l.length)S[S.field===20?"nums20":"nums10"]=l;}
+    return true;
+  })();
+  function linkURL(){
+    const parts=["spiel="+LP[0][2].find(x=>x[1]===S.mode)[0]];
+    LP.slice(1).forEach(([p,k,o])=>{if(S[k]!==defaults[k]){const m=o.find(x=>x[1]===S[k]);if(m)parts.push(p+"="+m[0]);}});
+    if(S.questions.join()!==defaults.questions.join())parts.push("fragen="+S.questions.map(k=>(QP.find(y=>y[1]===k)||[])[0]).filter(Boolean).join(","));
+    const nk=S.field===20?"nums20":"nums10";if(S[nk].join()!==defaults[nk].join())parts.push("zahlen="+numText(S[nk]));
+    return location.origin+location.pathname+"?"+parts.join("&");
+  }
+  const save=()=>{if(LINK)return;try{localStorage.setItem("blitz-settings-2",JSON.stringify(S))}catch(e){}};
   const nums=()=>S.field===20?S.nums20:S.nums10;
 
   const $=id=>document.getElementById(id);
@@ -556,6 +604,7 @@ footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
     setTime:["time",[[1,"1 s"],[2,"2 s"],[3,"3 s"],[5,"5 s"],["manual","Lehrkraft"]]]
   };
   function buildSettings(){
+    $("linkOut").hidden=true;
     for(const id in single){
       const [key,opts]=single[id],box=$(id);box.innerHTML="";
       opts.forEach(([v,label])=>{
@@ -590,6 +639,15 @@ footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
       b.addEventListener("click",()=>{S[key]=[];for(let i=a;i<=z;i++)S[key].push(i);bag=[];save();buildSettings();});pr.appendChild(b);
     });
   }
+  $("linkNote").hidden=!LINK;
+  async function copyLink(){
+    const u=linkURL(),out=$("linkOut"),b=$("btnCopyLink");out.value=u;out.hidden=false;let ok=false;
+    try{await navigator.clipboard.writeText(u);ok=true;}catch(e){}
+    if(!ok){try{out.focus();out.select();ok=document.execCommand("copy");}catch(e){}}
+    b.textContent=ok?"✓ Kopiert":"Link unten kopieren";setTimeout(()=>{b.textContent="Link kopieren";},2500);
+  }
+  $("btnCopyLink").addEventListener("click",copyLink);
+  if(navigator.share){$("btnShareLink").hidden=false;$("btnShareLink").addEventListener("click",()=>{try{navigator.share({title:"Blitzrechnen",url:linkURL()}).catch(()=>{});}catch(e){}});}
   let before="";
   function openS(){stopTimer();pending=null;before=JSON.stringify([S.mode,S.field,S.diceN,S.diceRows,S.fill20]);buildSettings();$("drawer").hidden=false;$("scrim").hidden=false;$("btnClose").focus();}
   function closeS(){
