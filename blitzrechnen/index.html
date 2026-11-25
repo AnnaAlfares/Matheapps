@@ -508,10 +508,15 @@ footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
   function hush(){lastSpoken="";if(synth)synth.cancel();}
   function updHear(){$("btnHear").hidden=!synth||!lastSpoken;
     $("btnSpeak").classList.toggle("off",S.speak==="off");$("lblSpeak").textContent=S.speak==="off"?"Vorlesen aus":"Vorlesen an";}
+  // Lösungsschutz (docs/vorlesen.md, Punkt 3): Vorgelesen werden nur feste Sätze (s.lines/s.hint).
+  // Einzige Ausnahme ist der Antwortbereich – und der nur im Schritt „Auflösen“, aus einer Kopie
+  // ohne Knöpfe, Eingaben, Bilder und [data-still]. Verdeckte Karten stehen gar nicht im DOM.
   function answerText(){
-    const qa=ans.querySelector(".qa");
+    if(!steps[idx]||steps[idx].t!=="reveal")return "";
+    const box=ans.cloneNode(true);box.querySelectorAll("button,input,select,textarea,svg,[data-still],[aria-hidden=true]").forEach(el=>el.remove());
+    const qa=box.querySelector(".qa");
     if(qa){const k=[...qa.children];let t="";for(let i=0;i<k.length;i+=2)t+=k[i].textContent+" "+[...k[i+1].querySelectorAll(".chip")].map(c=>c.textContent).join(", ")+". ";return t;}
-    return [...ans.querySelectorAll(".chip")].map(c=>c.textContent).join(". ");
+    return [...box.querySelectorAll(".chip")].map(c=>c.textContent).join(". ");
   }
 
   // ---------- step engine ----------

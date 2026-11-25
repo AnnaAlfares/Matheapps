@@ -426,7 +426,7 @@ function dieIn(el,c,ch,drop){
   const d=document.createElement('div'); d.className='cdie'+(drop?' drop':'');
   d.style.width=d.style.height=size+'px';
   d.innerHTML=Array.from({length:9},(_,k)=>`<i class="${(PIPS[c]||[]).includes(k)?'on':''}"></i>`).join('');
-  d.setAttribute('role','img'); d.setAttribute('aria-label',c+' Augen'); el.appendChild(d);
+  d.setAttribute('role','img'); d.setAttribute('aria-label',c===1?'1 Auge':c+' Augen'); el.appendChild(d);
   return size;
 }
 function renderBox(drop){
@@ -435,6 +435,10 @@ function renderBox(drop){
     const ch=$(id);
     if(dm){ const s=dieIn(ch.querySelector('.balls'),c,ch,drop); ch.style.minHeight=(s+36)+'px'; }
     else { ch.style.minHeight=(L.h+28)+'px'; fill(ch.querySelector('.balls'),c,L,drop); }
+    /* Lösungsschutz: Was unter dem Deckel liegt, darf auch keine Vorlesehilfe
+       (VoiceOver, „Bildschirminhalt sprechen“) finden – sonst liest sie z. B. „4 Augen“ vor. */
+    const balls=ch.querySelector('.balls'), secret=!shaken||!visible(side);
+    balls.setAttribute('aria-hidden',String(secret)); balls.inert=secret;
     const lid=$(lidId); lid.hidden=!hid[side];
     lid.classList.toggle('open',open[side]);
     lid.textContent=open[side]?'Zudecken':'?';
@@ -750,6 +754,9 @@ function speak(){
   if(lastClip&&voices[lastClip]){ try{ if('speechSynthesis' in window) speechSynthesis.cancel(); new Audio(voices[lastClip]).play(); return; }catch(e){} }
   tts(lastMsg);
 }
+/* Lösungsschutz (docs/vorlesen.md, Punkt 3): Vorgelesen werden nur feste Sätze aus setMsg,
+   nie Text aus der Box, dem Haus oder der Plusaufgabe. Sätze nennen nur, was sichtbar ist
+   („Rechts 4. Wie viele sind links versteckt?“), nie die versteckte Zahl. */
 function setMsg(t,auto,clip){ msgSeq++; lastMsg=t; lastClip=clip||null; $('#msg').textContent=t; if(auto&&S.speak) speak(); }
 
 const CLIPS=[['shake','Schüttle die Box!'],['correct','Richtig!'],['wrong','Noch nicht. Zähl noch einmal nach.'],['hidden','Wie viele sind versteckt?'],['count','Wie viele liegen links, wie viele rechts?'],['already','Das steht schon im Haus.'],['missing','Fehlen noch welche? Wie kannst du sicher sein?'],['full','Das Haus ist voll!'],['cover','Schau genau hin und decke eine Kammer zu.']];
