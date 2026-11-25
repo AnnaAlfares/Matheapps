@@ -151,6 +151,7 @@ footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
   .big{font-size:19px;min-height:52px;padding:.35em .9em;border-radius:14px}
   .chip{font-size:17px}
 }
+@media (max-width:480px){.meta{display:none}}
 /* phone held sideways: card left, questions and answers right */
 @media (max-height:520px) and (min-width:560px){
   .app{gap:6px;padding-block:6px}
@@ -388,7 +389,7 @@ footer{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
       case "free":return "Wie viele freie Plätze?";
       case "rows":return "Wie viele oben, wie viele unten?";
       case "more":return "Mehr oder weniger als "+p+"?";
-      case "toPivot":return n>p?"Wie viele sind es über die "+p+"?":"Wie viele fehlen bis "+p+"?";
+      case "toPivot":return "Wie viele fehlen bis "+p+"? Oder wie viele sind es über die "+p+"?"; // neutral, verrät nicht „mehr oder weniger“
       case "neighbors":return "Welche Zahl kommt davor, welche danach?";
       case "double":return "Wie viele wären es doppelt so viele?";
       case "half":return "Kannst du sie gerecht auf zwei Gruppen verteilen?";
