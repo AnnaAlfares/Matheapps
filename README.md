@@ -32,4 +32,4 @@ In den Einstellungen der Schüttelbox: „🖨 Arbeitsblätter öffnen“. Sechs
 - **Nur Box:** ④ Box-Bilder, ⑤ Box mit Deckel
 - **Box + Haus:** ⑥ Schüttel-Protokoll (Kugeln einmalen, Zerlegung ins Haus)
 
-Zahl 2–10 oder gemischt (4–10), mit oder ohne 0, Lösungsblatt, Mini-Übungsheft (Deckblatt + 5 Seiten), „Neue Zahlen“. Die erste Aufgabe ist immer ein gelöstes Beispiel (★). Für Schwarz-Weiß-Druck ist die linke (rote) Seite zusätzlich schraffiert. Gedruckt wird über den Browser (A4 hoch, Ränder: keine).
+Zahlen 2–10 frei wählbar (eine Zahl oder mehrere = gemischt), mit oder ohne 0, Lösungsblatt, „Neue Zahlen“. Mini-Übungsheft (Deckblatt + 5 Seiten): mehrere Blatt-Arten anklickbar (Häuser und Boxen gemischt), die Seiten wechseln sich ab. Zahlen kommen wie von einem Kartenstapel – erst wenn alle dran waren, kommt eine wieder; pro Zahl werden andere Zeilen, Lücken und Box-Bilder gewählt. Die erste Aufgabe ist immer ein gelöstes Beispiel (★). Für Schwarz-Weiß-Druck ist die linke (rote) Seite zusätzlich schraffiert. Gedruckt wird über den Browser (A4 hoch, Ränder: keine).

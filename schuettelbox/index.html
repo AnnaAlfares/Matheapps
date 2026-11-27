@@ -1061,46 +1061,46 @@ let rT; window.addEventListener('resize',()=>{ clearTimeout(rT); rT=setTimeout((
    Schwarz-weiß-tauglich: linke (rote) Seite zusätzlich schraffiert. Erste Aufgabe = gelöstes Beispiel. */
 const WSH={
   luecken:{view:'house',title:'Haus mit Lücken',icon:'house',text:'Welche Zahl fehlt? Schreib sie in das leere Zimmer. Beide Zimmer zusammen ergeben die Zahl im Dach.'},
-  ganz:{view:'house',title:'Ganzes Zahlenhaus',icon:'house',text:'Finde alle Zerlegungen und schreib sie ins Haus. Die erste steht schon da.'},
+  ganz:{view:'house',title:'Ganzes Zahlenhaus',icon:'house',text:'Finde alle Zerlegungen und schreib sie ins Haus. Eine steht schon da.'},
   geordnet:{view:'house',title:'Geordnetes Haus',icon:'house',text:'Das Haus ist geordnet: links immer eins mehr, rechts immer eins weniger. Welche Zahlen fehlen?'},
   bilder:{view:'box',title:'Box-Bilder',icon:'box',text:'Wie viele Kugeln liegen links, wie viele rechts? Schreib die Zahlen in die Kästchen.'},
   deckel:{view:'box',title:'Box mit Deckel',icon:'box',text:'Die Zahl auf der Box sagt, wie viele Kugeln es zusammen sind. Wie viele liegen links, wie viele rechts? Auch unter dem Deckel!'},
   protokoll:{view:'both',title:'Schüttel-Protokoll',icon:'both',text:'Schüttle die Box. Male die Kugeln in die Box und schreib die Zahlen darunter. Trag die Zerlegung ins Haus ein.'}
 };
-const WS={type:'luecken',n:6,mixed:false,zero:true,sol:true,heft:false};
-let wsPages=[], wsUid=0;
+const WS={type:'luecken',types:['luecken'],ns:[6],zero:true,sol:true,heft:false};
+let wsPages=[], wsUid=0, mem=null;
 const RED='#C2382F', BLUE='#1F5FBF', INK='#1f2937', SOLC='#6b7280';
 const shuf=a=>{ a=[...a]; for(let i=a.length-1;i>0;i--){ const j=rnd(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; };
 const decomp=(n,z)=>{ const r=[]; for(let a=z?0:1;a<=(z?n:n-1);a++) r.push({a,b:n-a}); return r; };
-const mixNs=()=>shuf([4,5,6,7,8,9,10]);
 const exFirst=l=>{ const k=l.findIndex(t=>t.a>0&&t.b>0); if(k>0) [l[0],l[k]]=[l[k],l[0]]; return l; };
+/* Gegen Wiederholungen (v. a. im Übungsheft): Zahlen kommen wie von einem Kartenstapel,
+   erst wenn alle gewählten Zahlen dran waren, wieder von vorn. Pro Zahl werden selten
+   benutzte Zeilen/Zerlegungen bevorzugt, und die Lücke wechselt die Seite. */
+function wsStack(){ let pile=[], last=null; return ()=>{ if(!pile.length){ pile=shuf(WS.ns); if(pile.length>1&&pile[0]===last) pile.push(pile.shift()); } return last=pile.shift(); }; }
+const pickRows=(n,k,kind='h',noZero=false,seen=null)=>{ const key=kind+n, c=mem.rows[key]||(mem.rows[key]={}); let cand=decomp(n,WS.zero).filter(x=>!noZero||(x.a>0&&x.b>0)); if(seen){ const f=cand.filter(x=>!seen.has(n+'-'+x.a)); if(f.length) cand=f; } const r=shuf(cand).sort((x,y)=>(c[x.a]||0)-(c[y.a]||0)).slice(0,k); r.forEach(x=>c[x.a]=(c[x.a]||0)+1); return r; };
+const pickSide=key=>{ const p=mem.side[key], s=p?(p==='l'?'r':'l'):(Math.random()<.5?'l':'r'); mem.side[key]=s; return s; };
 
-function wsGen(){
-  const t=WS.type, z=WS.zero, side=()=>Math.random()<.5?'l':'r';
+function wsGen(t,next){
+  const single=WS.ns.length===1, n0=WS.ns[0], z=WS.zero;
   if(t==='luecken'){
-    const ns=WS.mixed?mixNs().slice(0,6):[WS.n,WS.n];
-    return ns.map((n,i)=>{ let r=shuf(decomp(n,z)); if(WS.mixed) r=r.slice(0,4); r=r.map(x=>({...x,blank:side()})); if(i===0){ exFirst(r); r[0].ex=true; } return {n,rows:r}; });
+    const ns=single?[n0,n0]:Array.from({length:6},next);
+    return ns.map((n,i)=>{ const r=pickRows(n,single?99:4).map(x=>({...x,blank:pickSide(n+'-'+x.a)})); if(i===0){ exFirst(r); r[0].ex=true; } return {n,rows:r}; });
   }
   if(t==='ganz'){
-    const ns=WS.mixed?mixNs().slice(0,3):[WS.n,WS.n];
-    return ns.map(n=>({n,rows:decomp(n,z).reverse().map((x,k)=>({...x,blank:k?'both':null,ex:!k}))}));
+    const ns=single?[n0,n0]:Array.from({length:3},next);
+    return ns.map((n,i)=>{ const g=pickRows(n,1,'g')[0], cnt=decomp(n,z).length; return {n,rows:[{...g,blank:null,ex:i===0}].concat(Array.from({length:cnt-1},()=>({blank:'both'})))}; });
   }
   if(t==='geordnet'){
-    const ns=WS.mixed?mixNs().slice(0,3):[WS.n,WS.n];
-    return ns.map((n,i)=>({n,rows:decomp(n,z).map((x,k)=>{ if(!k) return {...x,blank:null,ex:i===0}; const r=Math.random(); return {...x,blank:r<.25?null:r<.62?'l':'r'}; })}));
+    const ns=single?[n0,n0]:Array.from({length:3},next);
+    return ns.map((n,i)=>({n,rows:decomp(n,z).map((x,k)=>{ if(!k) return {...x,blank:null,ex:i===0}; const r=Math.random(); return {...x,blank:r<.25?null:pickSide('o'+n+'-'+x.a)}; })}));
   }
   if(t==='bilder'||t==='deckel'){
-    const out=[]; let pool=[];
-    for(let i=0;i<8;i++){
-      let n=WS.n, x;
-      if(WS.mixed){ n=4+rnd(7); const d=decomp(n,z); x=d[rnd(d.length)]; }
-      else { if(!pool.length) pool=shuf(decomp(n,z)); x=pool.pop(); }
-      out.push({n,a:x.a,b:x.b,lid:t==='deckel'?side():null});
-    }
+    let zeros=0; const seen=new Set(); // höchstens eine Zerlegung mit 0 pro Seite, keine Aufgabe doppelt
+    const out=Array.from({length:8},()=>{ const n=single?n0:next(); let x=pickRows(n,1,'b',zeros>0&&n>1,seen)[0]; seen.add(n+'-'+x.a); if(x.a===0||x.b===0) zeros++; return {n,a:x.a,b:x.b,lid:t==='deckel'?pickSide('d'+n+'-'+x.a):null}; });
     exFirst(out); out[0].ex=true; return out;
   }
-  const n=WS.n, d=decomp(n,z), inner=d.filter(x=>x.a>0&&x.b>0), ex=(inner.length?inner:d)[rnd((inner.length?inner:d).length)];
-  return {n,ex,rows:d.length};
+  const n=single?n0:next(), d=decomp(n,z), inner=d.filter(x=>x.a>0&&x.b>0), src=inner.length?inner:d;
+  return {n,ex:src[rnd(src.length)],rows:d.length};
 }
 
 const hatch=id=>`<pattern id="${id}" width="2.4" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2.4" height="2.4" fill="#fdeceb"/><line x1="0" y1="0" x2="0" y2="2.4" stroke="${RED}" stroke-width=".45" stroke-opacity=".55"/></pattern>`;
@@ -1150,10 +1150,11 @@ const ICONS={
   box:`<svg class="sico" viewBox="0 0 40 40"><rect x="3" y="11" width="34" height="22" rx="4" fill="none" stroke="#1f2937" stroke-width="2.4"/><line x1="20" y1="11" x2="20" y2="33" stroke="#1f2937" stroke-width="2.4"/><circle cx="10" cy="27" r="3" fill="#1f2937"/><circle cx="15" cy="27" r="3" fill="#1f2937"/><circle cx="27" cy="27" r="3" fill="#1f2937"/></svg>`,
   both:`<svg class="sico" viewBox="0 0 40 40"><rect x="2" y="18" width="20" height="14" rx="3" fill="none" stroke="#1f2937" stroke-width="2"/><line x1="12" y1="18" x2="12" y2="32" stroke="#1f2937" stroke-width="2"/><circle cx="7" cy="28" r="2" fill="#1f2937"/><circle cx="16" cy="28" r="2" fill="#1f2937"/><polygon points="24,14 31,7 38,14" fill="none" stroke="#1f2937" stroke-width="2" stroke-linejoin="round"/><rect x="25" y="14" width="12" height="18" fill="none" stroke="#1f2937" stroke-width="2"/><line x1="31" y1="14" x2="31" y2="32" stroke="#1f2937" stroke-width="1.6"/></svg>`
 };
-const wsSub=()=>(WS.mixed&&WS.type!=='protokoll'?'Zahlen 4 bis 10':'Zahl '+WS.n)+(WS.zero?' · mit 0':' · ohne 0');
+const wsNums=(t,d)=>[...new Set(t==='protokoll'?[d.n]:d.map(x=>x.n))].sort((a,b)=>a-b);
+const wsSub=nums=>(nums.length===1?'Zahl '+nums[0]:'Zahlen '+nums.join(', '))+(WS.zero?' · mit 0':' · ohne 0');
 
-function wsBody(d,sol){
-  const t=WS.type, task=(i,ex,inner)=>`<div class="task${ex?' ex':''}"><span class="tno">${ex?'★ Beispiel':i}</span>${inner}</div>`;
+function wsBody(d,sol,t){
+  const task=(i,ex,inner)=>`<div class="task${ex?' ex':''}"><span class="tno">${ex?'★ Beispiel':i}</span>${inner}</div>`;
   if(t==='luecken'||t==='ganz'||t==='geordnet'){
     // Häuser so groß wie möglich (Platz für Kinderschrift): Höhe ca. 195 mm, Breite 182 mm
     const cols=d.length>2?3:2, lines=d.length>3?2:1, maxR=Math.max(...d.map(h=>h.rows.length));
@@ -1164,57 +1165,68 @@ function wsBody(d,sol){
   if(t==='bilder'||t==='deckel'){
     let k=0; return `<div class="sgrid" style="grid-template-columns:1fr 1fr">${d.map(b=>task(b.ex?0:++k,b.ex,boxSVG(b,{sol}))).join('')}</div>`;
   }
-  // Schüttel-Protokoll: 6 leere Boxen + Haus mit leeren Zeilen
+  // Schüttel-Protokoll: 8 leere Boxen + Haus mit leeren Zeilen
   let k=0; const boxes=Array.from({length:8},(_,i)=>i===0?task(0,true,boxSVG({n:d.n,a:d.ex.a,b:d.ex.b,ex:true},{width:58})):task(++k,false,boxSVG({n:d.n,a:null,b:null},{empty:true,width:58})));
   const house=houseSVG({n:d.n,rows:[{a:d.ex.a,b:d.ex.b,ex:true}]},{cell:22,rowH:Math.min(16,Math.floor((190-22*.85)/d.rows*10)/10),emptyRows:d.rows-1});
   return `<div style="display:grid;grid-template-columns:1fr auto;gap:5mm;align-items:start"><div class="sgrid" style="grid-template-columns:1fr 1fr;gap:3mm">${boxes.join('')}</div>${house}</div>`;
 }
-function wsPage(d,sol,seite){
-  const b=WSH[WS.type];
+function wsPage(pg,sol,seite){
+  const b=WSH[pg.type];
   return `<div class="swrap"><div class="sheet">
     <div class="nd"><span>Name: <span class="ln" style="width:62mm"></span></span><span>Datum: <span class="ln" style="width:32mm"></span></span></div>
-    <div class="sh">${ICONS[b.icon]}<div><div class="ssub">Schüttelbox und Zahlenhaus · ${wsSub()}</div><div class="stit">${b.title}${sol?' <em>– Lösung</em>':''}${seite?` <em style="font-size:5mm">Seite ${seite}</em>`:''}</div></div></div>
+    <div class="sh">${ICONS[b.icon]}<div><div class="ssub">Schüttelbox und Zahlenhaus · ${wsSub(wsNums(pg.type,pg.d))}</div><div class="stit">${b.title}${sol?' <em>– Lösung</em>':''}${seite?` <em style="font-size:5mm">Seite ${seite}</em>`:''}</div></div></div>
     <div class="stext">${b.text}</div>
-    ${wsBody(d,sol)}
+    ${wsBody(pg.d,sol,pg.type)}
     <div class="sfoot"><span>Schüttelbox und Zahlenhaus · ${seite?'Übungsheft':'Arbeitsblatt'}</span><span>links rot (schraffiert) · rechts blau</span></div>
   </div></div>`;
 }
 function wsDeck(){
-  const b=WSH[WS.type];
+  const types=[...new Set(wsPages.map(p=>p.type))], one=types.length===1, b=WSH[types[0]];
+  const nums=[...new Set(wsPages.flatMap(p=>wsNums(p.type,p.d)))].sort((x,y)=>x-y);
+  const big=one?ICONS[b.icon]:ICONS.both;
   return `<div class="swrap"><div class="sheet"><div class="deck">
     <div class="ssub" style="margin-top:8mm">Schüttelbox und Zahlenhaus</div>
     <div style="font-size:15mm;font-weight:700;margin-top:4mm">Mein Übungsheft</div>
-    <div style="width:46mm;height:46mm;margin:10mm 0 6mm">${ICONS[b.icon].replace('class="sico"','style="width:46mm;height:46mm"')}</div>
-    <div style="font-size:8mm;font-weight:700">${b.title}</div><div style="font-size:4.6mm;color:#374151">${wsSub()}</div>
-    <div style="font-size:6mm;margin-top:14mm;width:150mm;display:flex;gap:3mm;align-items:flex-end"><span>Name:</span><span class="ln" style="flex:1"></span></div>
-    <div style="margin-top:14mm;width:150mm;display:flex;flex-direction:column;gap:4mm">${[1,2,3,4,5].map(i=>`<div style="display:flex;align-items:center;gap:5mm;font-size:6mm"><span style="width:13mm;height:13mm;border-radius:50%;border:.7mm solid #1f2937;display:flex;align-items:center;justify-content:center;font-weight:700">${i}</span><span class="ln" style="flex:1;margin-bottom:2mm"></span><span style="width:13mm;height:13mm;border-radius:2mm;border:.7mm solid #1f2937"></span></div>`).join('')}</div>
+    <div style="width:40mm;height:40mm;margin:8mm 0 5mm">${big.replace('class="sico"','style="width:40mm;height:40mm"')}</div>
+    <div style="font-size:8mm;font-weight:700">${one?b.title:'Zerlegen'}</div><div style="font-size:4.6mm;color:#374151">${wsSub(nums)}</div>
+    <div style="font-size:6mm;margin-top:10mm;width:160mm;display:flex;gap:3mm;align-items:flex-end"><span>Name:</span><span class="ln" style="flex:1"></span></div>
+    <div style="margin-top:10mm;width:160mm;display:flex;flex-direction:column;gap:4mm">${wsPages.map((p,i)=>`<div style="display:flex;align-items:center;gap:4mm;font-size:5mm;text-align:left"><span style="width:12mm;height:12mm;border-radius:50%;border:.7mm solid #1f2937;display:flex;align-items:center;justify-content:center;font-weight:700;flex:none">${i+1}</span><span style="width:9mm;height:9mm;flex:none">${ICONS[WSH[p.type].icon].replace('class="sico"','style="width:9mm;height:9mm"')}</span><span style="width:52mm;flex:none">${WSH[p.type].title}</span><span class="ln" style="flex:1;margin-bottom:1.5mm"></span><span style="width:12mm;height:12mm;border-radius:2mm;border:.7mm solid #1f2937;flex:none"></span></div>`).join('')}</div>
   </div><div class="sfoot"><span>Schüttelbox und Zahlenhaus · Übungsheft</span><span>Datum auf die Linie, fertige Seite abhaken</span></div></div></div>`;
 }
-function wsNew(){ wsPages=Array.from({length:WS.heft?5:1},wsGen); }
+function wsNew(){
+  mem={rows:{},side:{}}; const next=wsStack();
+  if(WS.heft){ const ts=WS.types, cnt=Math.max(5,ts.length); wsPages=Array.from({length:cnt},(_,i)=>{ const type=ts[i%ts.length]; return {type,d:wsGen(type,next)}; }); }
+  else wsPages=[{type:WS.type,d:wsGen(WS.type,next)}];
+}
 function wsRender(){
-  const bar=$('#sbar'), mixedOK=WS.type!=='protokoll'; if(!mixedOK) WS.mixed=false;
+  const bar=$('#sbar');
   const btn=(on,label,act,extra='')=>`<button type="button" class="tool" aria-pressed="${on}" data-act="${act}" ${extra}>${label}</button>`;
-  const grp=v=>Object.entries(WSH).filter(([,x])=>x.view===v).map(([k,x],i)=>btn(WS.type===k,x.title,'type:'+k)).join('');
-  const nums=[2,3,4,5,6,7,8,9,10].map(n=>btn(!WS.mixed&&WS.n===n,n,'n:'+n,'style="min-width:46px;justify-content:center"')).join('')+(mixedOK?btn(WS.mixed,'gemischt','mixed'):'');
-  const pages=(WS.heft?1:0)+wsPages.length*((WS.sol&&WS.type!=='protokoll')?2:1);
+  const on=k=>WS.heft?WS.types.includes(k):WS.type===k;
+  const grp=v=>Object.entries(WSH).filter(([,x])=>x.view===v).map(([k,x])=>btn(on(k),(WS.heft&&on(k)?'✓ ':'')+x.title,'type:'+k)).join('');
+  const nums=[2,3,4,5,6,7,8,9,10].map(n=>btn(WS.ns.includes(n),n,'n:'+n,'style="min-width:46px;justify-content:center"')).join('')
+    +btn(false,'4 bis 10','range:4-10')+btn(false,'nur eine','one');
+  const solPages=wsPages.filter(p=>p.type!=='protokoll').length;
+  const pages=(WS.heft?1:0)+wsPages.length+(WS.sol?solPages:0);
   bar.innerHTML=`<div class="stop"><h2>Arbeitsblätter</h2><button type="button" class="tool print" data-act="print">🖨 Drucken</button><button type="button" class="tool" data-act="close">Schließen</button></div>
     <div class="srow"><span class="slab">Nur Haus</span>${grp('house')}</div>
     <div class="srow"><span class="slab">Nur Box</span>${grp('box')}</div>
     <div class="srow"><span class="slab">Box + Haus</span>${grp('both')}</div>
-    <div class="srow"><span class="slab">Zahl</span>${nums}</div>
+    ${WS.heft?'<p class="sinfo">Übungsheft: mehrere Blätter antippen – die Seiten wechseln sich ab.</p>':''}
+    <div class="srow"><span class="slab">Zahlen</span>${nums}</div>
+    <p class="sinfo">${WS.ns.length===1?'Nur die Zahl '+WS.ns[0]+'. Weitere Zahlen antippen = gemischt.':'Gemischt aus '+WS.ns.join(', ')+'. Jede Zahl kommt erst wieder, wenn alle dran waren.'}</p>
     <div class="srow"><span class="slab">Optionen</span>${btn(WS.zero,'Mit 0','zero:1')}${btn(!WS.zero,'Ohne 0','zero:0')}
-      <label><input type="checkbox" data-act="sol" ${WS.sol?'checked':''} ${WS.type==='protokoll'?'disabled':''}> Lösungsblatt</label>
-      <label><input type="checkbox" data-act="heft" ${WS.heft?'checked':''}> Mini-Übungsheft (Deckblatt + 5 Seiten)</label>
+      <label><input type="checkbox" data-act="sol" ${WS.sol?'checked':''} ${solPages?'':'disabled'}> Lösungsblatt</label>
+      <label><input type="checkbox" data-act="heft" ${WS.heft?'checked':''}> Mini-Übungsheft (Deckblatt + ${Math.max(5,WS.types.length)} Seiten)</label>
       <button type="button" class="tool" data-act="new">🔀 Neue Zahlen</button></div>
     <p class="sinfo">${pages} Seite${pages===1?'':'n'} · A4 hoch · Beim Drucken „Ränder: keine“ bzw. „Skalierung 100 %“ wählen. Links rot und schraffiert, damit es auch schwarz-weiß klappt.</p>`;
-  const sol=WS.sol&&WS.type!=='protokoll';
-  $('#spages').innerHTML=(WS.heft?wsDeck():'')+wsPages.map((d,i)=>wsPage(d,false,WS.heft?i+1:0)).join('')+(sol?wsPages.map((d,i)=>wsPage(d,true,WS.heft?i+1:0)).join(''):'');
+  const sol=WS.sol?wsPages.map((p,i)=>p.type==='protokoll'?'':wsPage(p,true,WS.heft?i+1:0)).join(''):'';
+  $('#spages').innerHTML=(WS.heft?wsDeck():'')+wsPages.map((p,i)=>wsPage(p,false,WS.heft?i+1:0)).join('')+sol;
   wsFit();
 }
 function wsFit(){ const sp=$('#spages'); if(!sp) return; const w=sp.clientWidth-24, mm=96/25.4; sp.style.setProperty('--f',Math.min(1,w/(210*mm)).toFixed(4)); }
 function openSheets(){
-  WS.n=Math.max(2,Math.min(10,S.n)); WS.zero=!!S.zero; WS.mixed=false;
-  WS.type=S.view==='house'?'luecken':S.view==='box'?'bilder':'protokoll';
+  WS.ns=[Math.max(2,Math.min(10,S.n))]; WS.zero=!!S.zero;
+  WS.type=S.view==='house'?'luecken':S.view==='box'?'bilder':'protokoll'; WS.types=[WS.type];
   $('#settings').open=false; $('#sheets').hidden=false; document.body.style.overflow='hidden';
   wsNew(); wsRender();
 }
@@ -1224,10 +1236,14 @@ $('#sbar').addEventListener('click',e=>{
   if(a==='print'){ window.print(); return; }
   if(a==='close'){ closeSheets(); return; }
   if(a==='sol'){ WS.sol=el.checked; wsRender(); return; }
-  if(a==='heft'){ WS.heft=el.checked; }
-  else if(a==='type') WS.type=v;
-  else if(a==='n'){ WS.n=+v; WS.mixed=false; }
-  else if(a==='mixed') WS.mixed=true;
+  if(a==='heft'){ WS.heft=el.checked; if(WS.heft) WS.types=[WS.type]; else WS.type=WS.types[0]; }
+  else if(a==='type'){
+    if(WS.heft){ const has=WS.types.includes(v); if(has&&WS.types.length===1) return; WS.types=has?WS.types.filter(x=>x!==v):Object.keys(WSH).filter(k=>k===v||WS.types.includes(k)); WS.type=WS.types[0]; }
+    else { WS.type=v; WS.types=[v]; }
+  }
+  else if(a==='n'){ const n=+v, has=WS.ns.includes(n); if(has&&WS.ns.length===1) return; WS.ns=has?WS.ns.filter(x=>x!==n):[...WS.ns,n].sort((x,y)=>x-y); }
+  else if(a==='range'){ const [x,y]=v.split('-').map(Number); WS.ns=Array.from({length:y-x+1},(_,i)=>x+i); }
+  else if(a==='one'){ WS.ns=[WS.ns[0]]; }
   else if(a==='zero') WS.zero=v==='1';
   else if(a!=='new') return;
   wsNew(); wsRender();
