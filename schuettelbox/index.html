@@ -292,8 +292,16 @@ body.v-house .house{max-width:380px}
   #sheets{position:static!important;display:block!important;background:#fff!important}
   #sheets .sbar{display:none!important}
   #spages{--f:1!important;display:block!important;padding:0!important;overflow:visible!important}
-  .swrap{box-shadow:none!important;break-after:page;page-break-after:always}
+  .swrap{box-shadow:none!important;break-after:page;page-break-after:always;break-inside:avoid;overflow:hidden}
   .swrap:last-child{break-after:auto;page-break-after:auto}
+  body{overflow:visible!important}
+  /* Luft für Drucker/Safari: Safari druckt mit Rand und verkleinert die Seite auf die Breite –
+     dann wird sie etwas zu hoch und es entstehen leere Zwischenseiten. Deshalb jede Druckseite
+     etwas niedriger als A4 und den Inhalt mittig verkleinert (Faltkante bleibt in der Mitte). */
+  #spages>.swrap{width:210mm!important;height:283mm!important}
+  #spages>.swrap>.sheet{transform:scale(.952)!important;transform-origin:top center!important}
+  #spages.landscape>.swrap{width:297mm!important;height:196mm!important}
+  #spages.landscape .aland{transform:scale(.932)!important;transform-origin:top center!important}
 }
 </style>
 <style id="wsPageSize"></style>
@@ -1248,9 +1256,9 @@ function wsRender(){
 }
 function wsBookletInfo(solPages){
   const N=Math.ceil((1+wsPages.length)/4)*4, sides=N/2, solS=WS.sol?Math.ceil(solPages/2):0;
-  return `Broschüre: ${N/4} Blatt Papier, ${sides} Druckseiten (A4 quer), <b>beidseitig drucken, an der kurzen Kante wenden</b>, dann in der Mitte falten – Deckblatt außen, Seiten 1–${wsPages.length} der Reihe nach${N>1+wsPages.length?', am Ende '+(N-1-wsPages.length)+' leere Seite'+(N-2-wsPages.length?'n':''):''}.`
+  return `Broschüre: ${N/4} Blatt Papier, ${sides} Druckseiten (A4 quer), Drucker: <b>Querformat, beidseitig, „oben nach unten“ wenden</b> (kurze Kante), dann in der Mitte falten – Deckblatt außen, Seiten 1–${wsPages.length} der Reihe nach${N>1+wsPages.length?', am Ende '+(N-1-wsPages.length)+' leere Seite'+(N-2-wsPages.length?'n':''):''}.`
     +(solS?` Lösungen: Druckseite ${sides+1}${solS>1?'–'+(sides+solS):''} (einseitig, im Druckdialog nur diese Seiten wählen).`:'')
-    +' Falls die Rückseiten auf dem Kopf stehen: „an der langen Kante wenden“ wählen.';
+    +' Falls die Rückseiten auf dem Kopf stehen: die andere Wende-Richtung wählen.';
 }
 function wsFit(){ const sp=$('#spages'); if(!sp) return; const w=sp.clientWidth-24, mm=96/25.4; sp.style.setProperty('--f',Math.min(1,w/((sp.classList.contains('landscape')?297:210)*mm)).toFixed(4)); }
 function openSheets(){
