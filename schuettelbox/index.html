@@ -221,6 +221,11 @@ a.tool{color:inherit;text-decoration:none}
 #count{flex-basis:100%;text-align:center}
 .hfoot button,.nbrow button{min-height:40px;padding:0 12px;border-radius:10px;border:2px solid var(--line);background:var(--paper)}
 .house.full .roof{animation:pop .7s 2}
+/* Ansicht „Nur Haus“: von der Box bleiben nur Würfel und Ansage */
+body.v-house .boxside > :not(.msg):not(.dicetray){display:none}
+body.v-house .stage{grid-template-columns:1fr;max-width:560px}
+body.v-house #houseBtn{display:none}
+body.v-house .house{max-width:380px}
 .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:280px;margin:14px auto 0}
 .keypad button{min-height:56px;font-size:1.5rem;border-radius:12px;border:2px solid var(--line);background:var(--paper)}
 .keypad .ok{background:var(--ok);color:#fff;border-color:var(--ok);font-size:1.15rem}
@@ -314,9 +319,9 @@ a.tool{color:inherit;text-decoration:none}
 (function(){
 const $=s=>document.querySelector(s);
 const KEY='schuettelbox-v2', VKEY='schuettelbox-voice';
-const DEF={zr:10,n:7,hide:'none',mode:'auto',rand:'real',eq:'button',tags:false,house:true,links:true,sorted:false,empty:true,pattern:false,sound:true,speak:false,boxnum:true,material:'box',diceTarget:'roof',partner:false,names:['Kind 1','Kind 2'],kid:false,code:''};
+const DEF={view:'both',zero:true,zr:10,n:7,hide:'none',mode:'auto',rand:'real',eq:'button',tags:false,house:true,links:true,sorted:false,empty:true,pattern:false,sound:true,speak:false,boxnum:true,material:'box',diceTarget:'roof',partner:false,names:['Kind 1','Kind 2'],kid:false,code:''};
 let S={...DEF};
-try{const v=JSON.parse(localStorage.getItem(KEY)||'null'); if(v) S={...DEF,...v};}catch(e){}
+try{const v=JSON.parse(localStorage.getItem(KEY)||'null'); if(v){ S={...DEF,...v}; if(!('view' in v)&&v.house===false) S.view='box'; }}catch(e){}
 function save(){ if(LINK) return; try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
 
 /* ---------- Einstellungen per Link ----------
@@ -331,17 +336,19 @@ const LP=[
   ['plus','eq',[['knopf','button'],['immer','always'],['aus','off']]],
   ['wuerfel','diceTarget',[['dach','roof'],['kammer','chamber']]],
   ['kugeln','rand',[['echt','real'],['gleich','uniform']]],
-  ['boxzahl','boxnum',B01],['haus','house',B01],['ordnen','sorted',B01],['leer','empty',B01],['muster','pattern',B01],
+  ['ansicht','view',[['beide','both'],['box','box'],['haus','house']]],['null','zero',B01],
+  ['boxzahl','boxnum',B01],['ordnen','sorted',B01],['leer','empty',B01],['muster','pattern',B01],
   ['anzahl','tags',B01],['linien','links',B01],['ton','sound',B01],['vorlesen','speak',B01],['partner','partner',B01],['kinder','kid',B01]
 ];
 const LALIAS={n:'zahl',mat:'material'};
 const LINK=(()=>{
   let q; try{ q=new URLSearchParams(location.search); }catch(e){ return false; }
   const get=k=>{ if(q.has(k)) return q.get(k); for(const a in LALIAS) if(LALIAS[a]===k&&q.has(a)) return q.get(a); return null; };
-  if(!LP.some(([p])=>get(p)!==null)&&get('zahl')===null) return false;
+  if(!LP.some(([p])=>get(p)!==null)&&get('zahl')===null&&get('haus')===null) return false;
   S={...DEF,names:[...DEF.names],mig3:true};
   LP.forEach(([p,k,opts])=>{ const v=get(p); if(v===null) return; const m=opts.find(o=>o[0]===v.trim().toLowerCase()); if(m) S[k]=m[1]; });
   const n=parseInt(get('zahl'),10); if(n>0) S.n=n;
+  if(get('ansicht')===null&&get('haus')==='0') S.view='box'; // ältere Links
   if(S.pattern) S.sorted=true;
   return true;
 })();
@@ -362,7 +369,10 @@ const rnd=k=>Math.floor(Math.random()*k);
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const usePlates=()=>S.material==='plates'&&!S.partner;
 const useDice=()=>S.material==='dice';
-const possible=a=>!useDice()||(a>=1&&a<=6&&S.n-a>=1&&S.n-a<=6);
+const possible=a=>(S.zero||(a>=1&&S.n-a>=1))&&(!useDice()||(a>=1&&a<=6&&S.n-a>=1&&S.n-a<=6));
+const houseOn=()=>S.view!=='box', houseOnly=()=>S.view==='house';
+const minN=()=>useDice()||!S.zero?2:1;
+const isFull=()=>rows.length>=possibleList().length;
 const possibleList=()=>Array.from({length:S.n+1},(_,a)=>a).filter(possible);
 const NONE=()=>({left:false,right:false});
 const pickHide=()=>{
@@ -376,8 +386,9 @@ const nameA=()=>S.names[turn]||'Kind 1', nameB=()=>S.names[1-turn]||'Kind 2';
 
 function split(){
   if(useDice()){ const l=possibleList(); return l.length?l[rnd(l.length)]:0; }
-  if(S.rand==='uniform') return rnd(S.n+1);
-  let a=0; for(let i=0;i<S.n;i++) if(Math.random()<.5) a++; return a;
+  if(S.rand==='uniform') return S.zero||S.n<2?rnd(S.n+1):1+rnd(S.n-1);
+  for(let t=0;t<60;t++){ let a=0; for(let i=0;i<S.n;i++) if(Math.random()<.5) a++; if(S.zero||possible(a)) return a; }
+  return 1+rnd(Math.max(1,S.n-1));
 }
 function makePlates(a){
   const arr=Array.from({length:S.n},(_,i)=>i<a);
@@ -490,18 +501,18 @@ function renderPartner(){
 
 /* ---------- Haus ---------- */
 function renderHouse(){
-  $('#house').classList.toggle('collapsed',!S.house);
-  $('#houseOff').hidden=!!S.house; $('#nbrow').hidden=!S.house;
-  $('#houseBtn').textContent=S.house?'Haus ausblenden':'Haus einblenden';
+  $('#house').classList.toggle('collapsed',!houseOn());
+  $('#houseOff').hidden=houseOn(); $('#nbrow').hidden=!houseOn();
+  $('#houseBtn').textContent=houseOn()?'Haus ausblenden':'Haus einblenden';
   $('#patBtn').textContent=S.pattern?'Muster ausblenden':'Muster zeigen';
   $('#sortBtn').textContent=S.sorted?'Wie gefunden':'Haus ordnen';
-  $('#plusOne').textContent=useDice()?'+1 Auge':'+1 Kugel'; $('#minusOne').textContent=useDice()?'−1 Auge':'−1 Kugel';
+  $('#plusOne').textContent=houseOnly()?'+1 rechts':useDice()?'+1 Auge':'+1 Kugel'; $('#minusOne').textContent=houseOnly()?'−1 rechts':useDice()?'−1 Auge':'−1 Kugel';
   $('#roofN').textContent=S.n;
   const hb=$('#hbody'); hb.innerHTML='';
   let list=[...rows]; if(S.sorted) list.sort((x,y)=>x.a-y.a);
   const tpl=S.sorted&&S.empty&&S.n<=20;
   const items=tpl?possibleList().map(a=>rows.find(r=>r.a===a)||{a,b:S.n-a,blank:true}):list;
-  if(!items.length) hb.innerHTML='<p class="empty">Noch leer. Schüttle die Box!</p>';
+  if(!items.length) hb.innerHTML=houseOnly()?'<p class="empty">Noch leer. Welche Zerlegung findest du?</p>':'<p class="empty">Noch leer. Schüttle die Box!</p>';
   let prev=null;
   items.forEach(r=>{
     if(S.pattern&&S.sorted&&prev&&!prev.blank&&!r.blank&&r.a===prev.a+1){
@@ -523,26 +534,31 @@ function renderHouse(){
       const need=pending.need[k], cls=`hc ${k==='a'?'l':'r'}${need?' in':''}${need&&pending.active===k?' act':''}`;
       return `<button type="button" class="${cls}" data-k="${k}" ${need?'':'tabindex="-1"'} aria-label="${k==='a'?'links':'rechts'}">${need?pending.val[k]:pending[k]}</button>`;
     };
-    const lbl=pending.need.a&&pending.need.b?'Wie viele liegen links, wie viele rechts?':'Wie viele fehlen?';
+    const lbl=pending.free?'Welche Zerlegung fehlt noch?':pending.need.a&&pending.need.b?'Wie viele liegen links, wie viele rechts?':'Wie viele fehlen?';
     p.innerHTML=`<p class="plabel">${lbl}</p><div class="hrow prow">${cell('a')}${cell('b')}</div>`;
     p.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{ if(pending.need[b.dataset.k]){pending.active=b.dataset.k; renderHouse();} });
   } else { p.hidden=true; p.innerHTML=''; }
   $('#keypad').hidden=!pending;
   $('#count').textContent=S.sorted?`${rows.length} von ${possibleList().length} Zerlegungen`:`${rows.length} ${rows.length===1?'Zerlegung':'Zerlegungen'} gefunden`;
 }
-function renderAll(drop){ renderZR(); renderPartner(); renderMaterial(!!drop); renderEq(); renderHouse(); }
+function renderAll(drop){
+  document.body.classList.toggle('v-house',houseOnly()); document.body.classList.toggle('v-box',!houseOn());
+  // Nur Haus: es gibt immer eine leere Zeile zum Eintragen, bis das Haus voll ist
+  if(houseOnly()&&!pending&&!isFull()) pending={free:true,a:null,b:null,need:{a:true,b:true},val:{a:'',b:''},active:'a'};
+  if(!houseOnly()&&pending&&pending.free) pending=null;
+  renderZR(); renderPartner(); renderMaterial(!!drop); renderEq(); renderHouse(); }
 
 /* ---------- Ablauf ---------- */
 function setN(v){
-  v=Math.max(useDice()?2:1,Math.min(useDice()?Math.min(12,S.zr):S.zr,Math.round(+v||1)));
+  v=Math.max(minN(),Math.min(useDice()?Math.min(12,S.zr):S.zr,Math.round(+v||1)));
   S.n=v; save();
   rows=[]; pending=null; selectedA=null; shaken=false; eqShown=false; impulseShown=false;
   hid=pickHide(); open=NONE(); phase='shake'; setSplit(split());
   hideLinks(); renderAll(false);
-  setMsg(S.partner?`${nameA()}: Schüttle die Box!`:'Schüttle die Box!',false,'shake');
+  setMsg(houseOnly()?`Welche Zerlegungen von ${S.n} findest du? Trag sie ins Haus ein.`:S.partner?`${nameA()}: Schüttle die Box!`:'Schüttle die Box!',false,houseOnly()?null:'shake');
 }
 function shake(){
-  if(busy) return; busy=true; rattle(); hideLinks();
+  if(busy||houseOnly()) return; busy=true; rattle(); hideLinks();
   const el=usePlates()?$('#plates'):$('#box');
   el.classList.remove('shaking'); void el.offsetWidth; el.classList.add('shaking');
   setTimeout(()=>{ el.classList.remove('shaking'); setSplit(split()); shaken=true; busy=false; afterShake(); },650);
@@ -590,7 +606,7 @@ function chamberRound(v){
   hid=usePlates()?NONE():{left:false,right:true}; phase=S.partner?'answer':'shake';
   pending={a:v,b:S.n-v,need:{a:false,b:true},val:{a:'',b:''},active:'b'};
   hideLinks(); renderAll(true);
-  setMsg(usePlates()?`${v} Plättchen sind rot. Wie viele sind blau?`:`Links liegen ${v}. Wie viele fehlen bis ${S.n}?`,true,'hidden');
+  setMsg(houseOnly()?`Links steht ${v}. Wie viele fehlen bis ${S.n}?`:usePlates()?`${v} Plättchen sind rot. Wie viele sind blau?`:`Links liegen ${v}. Wie viele fehlen bis ${S.n}?`,true,'hidden');
 }
 function key(k){
   if(!pending) return;
@@ -608,6 +624,7 @@ function key(k){
 function check(){
   if(!pending) return;
   for(const k of ['a','b']) if(pending.need[k]&&pending.val[k]===''){ pending.active=k; renderHouse(); setMsg('Tippe zuerst eine Zahl ein.',true); return; }
+  if(pending.free) return checkFree();
   const ok={a:true,b:true}; let all=true;
   for(const k of ['a','b']) if(pending.need[k]){ ok[k]=+pending.val[k]===pending[k]; if(!ok[k]) all=false; }
   if(all){
@@ -623,6 +640,16 @@ function check(){
     renderHouse(); const pr=document.querySelector('.prow'); if(pr) pr.classList.add('nope');
     setMsg('Noch nicht. Zähl noch einmal nach.',true,'wrong');
   }
+}
+function checkFree(){
+  const a=+pending.val.a, b=+pending.val.b;
+  const again=()=>{ pending.val={a:'',b:''}; pending.active='a'; renderHouse(); const pr=document.querySelector('.prow'); if(pr) pr.classList.add('nope'); };
+  if(a+b!==S.n){ again(); setMsg(`${a} und ${b} sind zusammen nicht ${S.n}. Probier es noch einmal.`,true); return; }
+  if(!possible(a)){ again(); setMsg(useDice()?`${a} und ${b} geht mit zwei Würfeln nicht. Findest du eine andere?`:'Heute ohne 0. Findest du eine andere Zerlegung?',true); return; }
+  if(rows.some(r=>r.a===a)){ pending.val={a:'',b:''}; pending.active='a'; selectedA=a; renderHouse(); highlightRow(a); setMsg(`${a} und ${b} steht schon im Haus. Findest du eine andere?`,true,'already'); return; }
+  addRow(a); selectedA=a; pending=null; renderAll(false); highlightRow(a);
+  setMsg(`Richtig! ${a} und ${b} sind ${S.n}.`,true,'correct');
+  afterAdd(true);
 }
 function selectRow(r){
   if(busy) return;
@@ -651,24 +678,26 @@ function plusOne(){
   plates.splice(rnd(plates.length+1),0,false);
   pending=null; impulseShown=true; if(selectedA!==null&&!rows.some(r=>r.a===selectedA)) selectedA=null;
   hideLinks(); renderAll(false);
+  if(houseOnly()) setMsg(`Rechts immer eins mehr: Aus jeder Zerlegung von ${old} wird eine von ${S.n}. Welche fehlt jetzt noch?`,true); else
   setMsg(useDice()?`Ein Auge mehr auf dem rechten Würfel: Aus den Zerlegungen von ${old} werden Zerlegungen von ${S.n}. Welche fehlt jetzt noch?`:`Eine Kugel mehr in die rechte Kammer: Aus jeder Zerlegung von ${old} wird eine von ${S.n}. Welche fehlt jetzt noch?`,true);
 }
 function minusOne(){
-  if(S.n<=(useDice()?2:1)) return;
+  if(S.n<=minN()) return;
   const old=S.n; S.n--; save();
   rows=rows.filter(r=>r.b>0).map(r=>({a:r.a,b:r.b-1})).filter(r=>possible(r.a));
   const minR=useDice()?1:0;
   if(right>minR){ right--; const i=plates.lastIndexOf(false); if(i>=0) plates.splice(i,1); } else { left--; const i=plates.lastIndexOf(true); if(i>=0) plates.splice(i,1); }
   pending=null; impulseShown=true; if(selectedA!==null&&!rows.some(r=>r.a===selectedA)) selectedA=null;
   hideLinks(); renderAll(false);
-  setMsg(useDice()?`Ein Auge weniger: Aus den Zerlegungen von ${old} werden Zerlegungen von ${S.n}.`:`Rechts eine Kugel weniger: Aus den Zerlegungen von ${old} werden Zerlegungen von ${S.n}. ${old} und 0 fällt weg.`,true);
+  if(houseOnly()) setMsg(`Rechts immer eins weniger: Aus den Zerlegungen von ${old} werden Zerlegungen von ${S.n}. ${S.zero?old+' und 0':(old-1)+' und 1'} fällt weg.`,true); else
+  setMsg(useDice()?`Ein Auge weniger: Aus den Zerlegungen von ${old} werden Zerlegungen von ${S.n}.`:`Rechts eine Kugel weniger: Aus den Zerlegungen von ${old} werden Zerlegungen von ${S.n}. ${S.zero?old+' und 0':(old-1)+' und 1'} fällt weg.`,true);
 }
 
 /* ---------- Verbindungslinien ---------- */
 let linkT;
 function hideLinks(){ $('#links').classList.remove('show'); document.querySelectorAll('.glow').forEach(e=>e.classList.remove('glow')); }
 function drawLinks(rowEl){
-  if(!S.links||!rowEl||!S.house) return;
+  if(!S.links||!rowEl||S.view!=='both') return;
   const svg=$('#links'), W=innerWidth, H=innerHeight; svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
   hideLinks(); let html='';
   const pl=usePlates();
@@ -714,12 +743,13 @@ function roll(){
       const v=total();
       if(S.diceTarget==='chamber'){
         if(v>S.n){ setMsg(`${v} ist mehr als ${S.n}. So viele passen nicht in die Box. Würfle noch einmal.`,true); return; }
+        if(!S.zero&&v===S.n){ setMsg(`Dann bliebe rechts nichts übrig. Heute ohne 0. Würfle noch einmal.`,true); return; }
         if(useDice()&&!possible(v)){ setMsg(`Dann bräuchte der rechte Würfel ${S.n-v} Augen. Das geht nicht. Würfle noch einmal.`,true); return; }
         chamberRound(v);
       } else {
         if(v<1||v>S.zr){ setMsg(`${v} passt nicht in den Zahlenraum bis ${S.zr}. Würfle noch einmal.`,true); return; }
         if(useDice()&&(v<2||v>12)){ setMsg(`${v} lässt sich nicht mit zwei Würfeln zeigen. Würfle noch einmal.`,true); return; }
-        setN(v); setMsg(`Gewürfelt: ${v}. ${S.partner?nameA()+': ':''}Schüttle die Box!`,true,'shake');
+        setN(v); if(houseOnly()) setMsg(`Gewürfelt: ${v}. Welche Zerlegungen findest du?`,true); else setMsg(`Gewürfelt: ${v}. ${S.partner?nameA()+': ':''}Schüttle die Box!`,true,'shake');
       }
     }
   },70);
@@ -827,6 +857,8 @@ function forgotFlow(){
 
 /* ---------- Einstellungen ---------- */
 const SEGS=[
+  ['view','Ansicht',[['both','Box und Haus'],['box','Nur Box'],['house','Nur Haus']],'Nur Haus: Die Kinder finden Zerlegungen selbst und tragen beide Zahlen ins Haus ein.'],
+  ['zero','Zerlegungen mit 0',[[true,'Mit 0'],[false,'Ohne 0']],'Ohne 0 zählt z. B. 7 und 0 nicht. Die Dachzahl ist dann mindestens 2.'],
   ['material','Material',[['box','Schüttelbox'],['plates','Wendeplättchen'],['dice','Würfel']],'Wendeplättchen: Rot zählt links, Blau rechts, ohne Deckel. Würfel: In jeder Kammer liegt ein Würfel. Es gibt nur Zerlegungen mit 1 bis 6 Augen, also Dachzahlen von 2 bis 12.'],
   ['hide','Kammern',[['none','Beide offen'],['left','Links zu'],['right','Rechts zu'],['both','Beide zu'],['random','Zufällig eine zu']]],
   ['mode','Ins Haus eintragen',[['auto','Automatisch'],['self','Kinder tragen ein']],'Bei verdeckter Kammer tragen die Kinder die versteckte Zahl immer selbst ein.'],
@@ -834,7 +866,7 @@ const SEGS=[
   ['diceTarget','Der Würfel bestimmt',[['roof','die Dachzahl'],['chamber','die linke Kammer']],'Bei „linke Kammer“ würfeln die Kinder, wie viele links liegen, und ergänzen bis zur Dachzahl.'],
   ['rand','Kugeln fallen',[['real','Wie in echt'],['uniform','Alle gleich oft']],'In einer echten Box landen fast nie alle Kugeln auf einer Seite. „Alle gleich oft“ hilft, alle Zerlegungen zu finden.']
 ];
-const TOGS=[['boxnum','Zahl auf der Box zeigen'],['house','Zahlenhaus zeigen'],['sorted','Haus ordnen'],['empty','Leere Zeilen zeigen (bis 20)'],['pattern','Muster im Haus zeigen (+1 / −1)'],['tags','Anzahl unter den Kammern zeigen'],['links','Verbindungslinien zeigen'],['sound','Schüttelgeräusch'],['speak','Automatisch vorlesen']];
+const TOGS=[['boxnum','Zahl auf der Box zeigen'],['sorted','Haus ordnen'],['empty','Leere Zeilen zeigen (bis 20)'],['pattern','Muster im Haus zeigen (+1 / −1)'],['tags','Anzahl unter den Kammern zeigen'],['links','Verbindungslinien zeigen'],['sound','Schüttelgeräusch'],['speak','Automatisch vorlesen']];
 function h2(p,t){ const h=document.createElement('h2'); h.textContent=t; p.appendChild(h); }
 function hint(p,t){ const e=document.createElement('p'); e.className='hint'; e.textContent=t; p.appendChild(e); }
 function renderPanel(){
@@ -909,19 +941,20 @@ function onSetting(k,v){
   if(k==='material') setN(S.n);
   if(k==='mode'){ pending=null; }
   if(k==='partner'){ turn=0; phase='shake'; pending=null; hid=pickHide(); open=NONE(); setMsg(v?`${nameA()}: Schüttle die Box!`:'Schüttle die Box!',false,'shake'); }
-  if(k==='house'&&!v) hideLinks();
+  if(k==='view'){ hideLinks(); if(pending&&!pending.free) pending=null; if(v==='house') setMsg(`Welche Zerlegungen von ${S.n} findest du? Trag sie ins Haus ein.`,true); else if(!shaken) setMsg('Schüttle die Box!',false,'shake'); }
+  if(k==='zero'){ setN(S.n); }
   save(); renderPanel(); renderAll(false);
 }
 
 /* ---------- Ereignisse ---------- */
 $('#shakeBtn').onclick=shake;
 $('#diceBtn').onclick=roll;
-$('#clearBtn').onclick=()=>{ rows=[]; selectedA=null; pending=null; impulseShown=false; hideLinks(); renderAll(false); setMsg('Das Haus ist leer. Schüttle die Box!',false,'shake'); };
+$('#clearBtn').onclick=()=>{ rows=[]; selectedA=null; pending=null; impulseShown=false; hideLinks(); renderAll(false); if(houseOnly()) setMsg('Das Haus ist leer. Welche Zerlegung findest du?',false); else setMsg('Das Haus ist leer. Schüttle die Box!',false,'shake'); };
 $('#sayBtn').onclick=speak;
 [['#lidL','left'],['#lidR','right']].forEach(([id,side])=>$(id).onclick=()=>{ open[side]=!open[side]; renderMaterial(false); renderEq(); });
 $('#eqBtn').onclick=()=>{ eqShown=!eqShown; renderEq(); };
-const setHouse=v=>{ S.house=v; save(); if(!v) hideLinks(); renderPanel(); renderHouse(); };
-$('#houseBtn').onclick=()=>setHouse(!S.house);
+const setHouse=v=>{ S.view=v?'both':'box'; save(); if(!v) hideLinks(); renderPanel(); renderHouse(); };
+$('#houseBtn').onclick=()=>setHouse(!houseOn());
 $('#houseOn').onclick=()=>setHouse(true);
 function animateSort(apply){
   const before={};
