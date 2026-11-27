@@ -280,6 +280,11 @@ body.v-house .house{max-width:380px}
 .sheet .task.ex{border:.5mm dashed #6b7280}
 .sheet .tno{position:absolute;top:1.3mm;left:2.5mm;font-size:3.4mm;font-weight:700;color:#6b7280}
 .sheet .deck{display:flex;flex-direction:column;align-items:center;text-align:center}
+.aland{width:297mm;height:210mm;display:flex;background:#fff;transform:scale(var(--f));transform-origin:top left;position:relative}
+.aland::after{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:.2mm dashed #d1d5db}
+.landscape .swrap{width:calc(297mm * var(--f));height:calc(210mm * var(--f))}
+.a5{width:148.5mm;height:210mm;overflow:hidden;position:relative}
+.a5 .sheet{transform:scale(.70711)}
 @media print{
   @page{size:A4 portrait;margin:0}
   :root,html,body{padding:0!important;background:#fff!important}
@@ -291,6 +296,7 @@ body.v-house .house{max-width:380px}
   .swrap:last-child{break-after:auto;page-break-after:auto}
 }
 </style>
+<style id="wsPageSize"></style>
 </head>
 <body>
 <header class="top">
@@ -1067,7 +1073,7 @@ const WSH={
   deckel:{view:'box',title:'Box mit Deckel',icon:'box',text:'Die Zahl auf der Box sagt, wie viele Kugeln es zusammen sind. Wie viele liegen links, wie viele rechts? Auch unter dem Deckel!'},
   protokoll:{view:'both',title:'Schüttel-Protokoll',icon:'both',text:'Schüttle die Box. Male die Kugeln in die Box und schreib die Zahlen darunter. Trag die Zerlegung ins Haus ein.'}
 };
-const WS={type:'luecken',types:['luecken'],ns:[6],zero:true,sol:true,heft:false};
+const WS={type:'luecken',types:['luecken'],ns:[6],zero:true,sol:true,heft:false,booklet:false};
 let wsPages=[], wsUid=0, mem=null;
 const RED='#C2382F', BLUE='#1F5FBF', INK='#1f2937', SOLC='#6b7280';
 const shuf=a=>{ a=[...a]; for(let i=a.length-1;i>0;i--){ const j=rnd(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; };
@@ -1172,26 +1178,26 @@ function wsBody(d,sol,t){
 }
 function wsPage(pg,sol,seite){
   const b=WSH[pg.type];
-  return `<div class="swrap"><div class="sheet">
+  return `<div class="sheet">
     <div class="nd"><span>Name: <span class="ln" style="width:62mm"></span></span><span>Datum: <span class="ln" style="width:32mm"></span></span></div>
     <div class="sh">${ICONS[b.icon]}<div><div class="ssub">Schüttelbox und Zahlenhaus · ${wsSub(wsNums(pg.type,pg.d))}</div><div class="stit">${b.title}${sol?' <em>– Lösung</em>':''}${seite?` <em style="font-size:5mm">Seite ${seite}</em>`:''}</div></div></div>
     <div class="stext">${b.text}</div>
     ${wsBody(pg.d,sol,pg.type)}
     <div class="sfoot"><span>Schüttelbox und Zahlenhaus · ${seite?'Übungsheft':'Arbeitsblatt'}</span><span>links rot (schraffiert) · rechts blau</span></div>
-  </div></div>`;
+  </div>`;
 }
 function wsDeck(){
   const types=[...new Set(wsPages.map(p=>p.type))], one=types.length===1, b=WSH[types[0]];
   const nums=[...new Set(wsPages.flatMap(p=>wsNums(p.type,p.d)))].sort((x,y)=>x-y);
   const big=one?ICONS[b.icon]:ICONS.both;
-  return `<div class="swrap"><div class="sheet"><div class="deck">
+  return `<div class="sheet"><div class="deck">
     <div class="ssub" style="margin-top:8mm">Schüttelbox und Zahlenhaus</div>
     <div style="font-size:15mm;font-weight:700;margin-top:4mm">Mein Übungsheft</div>
     <div style="width:40mm;height:40mm;margin:8mm 0 5mm">${big.replace('class="sico"','style="width:40mm;height:40mm"')}</div>
     <div style="font-size:8mm;font-weight:700">${one?b.title:'Zerlegen'}</div><div style="font-size:4.6mm;color:#374151">${wsSub(nums)}</div>
     <div style="font-size:6mm;margin-top:10mm;width:160mm;display:flex;gap:3mm;align-items:flex-end"><span>Name:</span><span class="ln" style="flex:1"></span></div>
     <div style="margin-top:10mm;width:160mm;display:flex;flex-direction:column;gap:4mm">${wsPages.map((p,i)=>`<div style="display:flex;align-items:center;gap:4mm;font-size:5mm;text-align:left"><span style="width:12mm;height:12mm;border-radius:50%;border:.7mm solid #1f2937;display:flex;align-items:center;justify-content:center;font-weight:700;flex:none">${i+1}</span><span style="width:9mm;height:9mm;flex:none">${ICONS[WSH[p.type].icon].replace('class="sico"','style="width:9mm;height:9mm"')}</span><span style="width:52mm;flex:none">${WSH[p.type].title}</span><span class="ln" style="flex:1;margin-bottom:1.5mm"></span><span style="width:12mm;height:12mm;border-radius:2mm;border:.7mm solid #1f2937;flex:none"></span></div>`).join('')}</div>
-  </div><div class="sfoot"><span>Schüttelbox und Zahlenhaus · Übungsheft</span><span>Datum auf die Linie, fertige Seite abhaken</span></div></div></div>`;
+  </div><div class="sfoot"><span>Schüttelbox und Zahlenhaus · Übungsheft</span><span>Datum auf die Linie, fertige Seite abhaken</span></div></div>`;
 }
 function wsNew(){
   mem={rows:{},side:{}}; const next=wsStack();
@@ -1217,13 +1223,31 @@ function wsRender(){
     <div class="srow"><span class="slab">Optionen</span>${btn(WS.zero,'Mit 0','zero:1')}${btn(!WS.zero,'Ohne 0','zero:0')}
       <label><input type="checkbox" data-act="sol" ${WS.sol?'checked':''} ${solPages?'':'disabled'}> Lösungsblatt</label>
       <label><input type="checkbox" data-act="heft" ${WS.heft?'checked':''}> Mini-Übungsheft (Deckblatt + ${Math.max(5,WS.types.length)} Seiten)</label>
+      ${WS.heft?`<label><input type="checkbox" data-act="booklet" ${WS.booklet?'checked':''}> Als Broschüre (A5, gefaltet)</label>`:''}
       <button type="button" class="tool" data-act="new">🔀 Neue Zahlen</button></div>
-    <p class="sinfo">${pages} Seite${pages===1?'':'n'} · A4 hoch · Beim Drucken „Ränder: keine“ bzw. „Skalierung 100 %“ wählen. Links rot und schraffiert, damit es auch schwarz-weiß klappt.</p>`;
-  const sol=WS.sol?wsPages.map((p,i)=>p.type==='protokoll'?'':wsPage(p,true,WS.heft?i+1:0)).join(''):'';
-  $('#spages').innerHTML=(WS.heft?wsDeck():'')+wsPages.map((p,i)=>wsPage(p,false,WS.heft?i+1:0)).join('')+sol;
+    <p class="sinfo">${WS.heft&&WS.booklet?wsBookletInfo(solPages):`${pages} Seite${pages===1?'':'n'} · A4 hoch · Beim Drucken „Ränder: keine“ bzw. „Skalierung 100 %“ wählen. Links rot und schraffiert, damit es auch schwarz-weiß klappt.`}</p>`;
+  const solList=WS.sol?wsPages.map((p,i)=>p.type==='protokoll'?'':wsPage(p,true,WS.heft?i+1:0)).filter(Boolean):[];
+  const main=(WS.heft?[wsDeck()]:[]).concat(wsPages.map((p,i)=>wsPage(p,false,WS.heft?i+1:0)));
+  const bk=WS.heft&&WS.booklet;
+  $('#wsPageSize').textContent=bk?'@media print{@page{size:A4 landscape;margin:0}}':'';
+  $('#spages').classList.toggle('landscape',bk);
+  if(bk){
+    // Broschüre: auf Vielfaches von 4 auffüllen, dann Falzreihenfolge (Bogen s: vorn N-1-2s | 2s, hinten 2s+1 | N-2-2s)
+    const P=[...main]; while(P.length%4) P.push('<div class="sheet"></div>');
+    const N=P.length, two=(l,r)=>`<div class="swrap"><div class="aland"><div class="a5">${l}</div><div class="a5">${r||''}</div></div></div>`;
+    let out=''; for(let k=0;k<N/4;k++) out+=two(P[N-1-2*k],P[2*k])+two(P[2*k+1],P[N-2-2*k]);
+    for(let k=0;k<solList.length;k+=2) out+=two(solList[k],solList[k+1]);
+    $('#spages').innerHTML=out;
+  } else $('#spages').innerHTML=main.concat(solList).map(h=>`<div class="swrap">${h}</div>`).join('');
   wsFit();
 }
-function wsFit(){ const sp=$('#spages'); if(!sp) return; const w=sp.clientWidth-24, mm=96/25.4; sp.style.setProperty('--f',Math.min(1,w/(210*mm)).toFixed(4)); }
+function wsBookletInfo(solPages){
+  const N=Math.ceil((1+wsPages.length)/4)*4, sides=N/2, solS=WS.sol?Math.ceil(solPages/2):0;
+  return `Broschüre: ${N/4} Blatt Papier, ${sides} Druckseiten (A4 quer), <b>beidseitig drucken, an der kurzen Kante wenden</b>, dann in der Mitte falten – Deckblatt außen, Seiten 1–${wsPages.length} der Reihe nach${N>1+wsPages.length?', am Ende '+(N-1-wsPages.length)+' leere Seite'+(N-2-wsPages.length?'n':''):''}.`
+    +(solS?` Lösungen: Druckseite ${sides+1}${solS>1?'–'+(sides+solS):''} (einseitig, im Druckdialog nur diese Seiten wählen).`:'')
+    +' Falls die Rückseiten auf dem Kopf stehen: „an der langen Kante wenden“ wählen.';
+}
+function wsFit(){ const sp=$('#spages'); if(!sp) return; const w=sp.clientWidth-24, mm=96/25.4; sp.style.setProperty('--f',Math.min(1,w/((sp.classList.contains('landscape')?297:210)*mm)).toFixed(4)); }
 function openSheets(){
   WS.ns=[Math.max(2,Math.min(10,S.n))]; WS.zero=!!S.zero;
   WS.type=S.view==='house'?'luecken':S.view==='box'?'bilder':'protokoll'; WS.types=[WS.type];
@@ -1236,6 +1260,7 @@ $('#sbar').addEventListener('click',e=>{
   if(a==='print'){ window.print(); return; }
   if(a==='close'){ closeSheets(); return; }
   if(a==='sol'){ WS.sol=el.checked; wsRender(); return; }
+  if(a==='booklet'){ WS.booklet=el.checked; wsRender(); return; }
   if(a==='heft'){ WS.heft=el.checked; if(WS.heft) WS.types=[WS.type]; else WS.type=WS.types[0]; }
   else if(a==='type'){
     if(WS.heft){ const has=WS.types.includes(v); if(has&&WS.types.length===1) return; WS.types=has?WS.types.filter(x=>x!==v):Object.keys(WSH).filter(k=>k===v||WS.types.includes(k)); WS.type=WS.types[0]; }
