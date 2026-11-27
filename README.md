@@ -23,3 +23,13 @@ In beiden Apps gibt es in den Einstellungen „Link kopieren“. Ein solcher Lin
   Beispiel: `blitzrechnen/?spiel=blitz&feld=20&blitz=2&fragen=wieviele`
 - **Schüttelbox** (`schuettelbox/?…`): `zahl` (oder `n`), `zr` (10, 20, 100), `ansicht` (beide, box, haus), `null` (1 = mit 0, 0 = ohne 0), `material` (oder `mat`: box, plaettchen, wuerfel), `kammern` (offen, links, rechts, beide, zufall), `eintragen` (auto, kinder), `plus` (knopf, immer, aus), `wuerfel` (dach, kammer), `kugeln` (echt, gleich), an/aus mit 1/0: `boxzahl`, `ordnen`, `leer`, `muster`, `anzahl`, `linien`, `ton`, `vorlesen`, `partner`, `kinder` (Kinder-Ansicht; beenden über „🔒 Lehrkraft“ mit Rechenfrage).
   Beispiel: `schuettelbox/?zahl=7&ansicht=haus&null=0`
+
+## Arbeitsblätter (Schüttelbox)
+
+In den Einstellungen der Schüttelbox: „🖨 Arbeitsblätter öffnen“. Sechs Blätter, passend zu den Ansichten:
+
+- **Nur Haus:** ① Haus mit Lücken, ② Ganzes Zahlenhaus, ③ Geordnetes Haus (mit +1/−1)
+- **Nur Box:** ④ Box-Bilder, ⑤ Box mit Deckel
+- **Box + Haus:** ⑥ Schüttel-Protokoll (Kugeln einmalen, Zerlegung ins Haus)
+
+Zahl 2–10 oder gemischt (4–10), mit oder ohne 0, Lösungsblatt, Mini-Übungsheft (Deckblatt + 5 Seiten), „Neue Zahlen“. Die erste Aufgabe ist immer ein gelöstes Beispiel (★). Für Schwarz-Weiß-Druck ist die linke (rote) Seite zusätzlich schraffiert. Gedruckt wird über den Browser (A4 hoch, Ränder: keine).
